@@ -1,275 +1,186 @@
-# Security Analysis Pipeline
+# CLAUDE.md
 
-## Vue d'ensemble
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Pipeline automatisée d'analyse de sécurité pour identifier les vulnérabilités dans des projets. Analyse le code source (SAST), les dépendances (SCA), et les secrets exposés, puis génère des rapports professionnels avec plans de remédiation.
+## Project Overview
 
-## Objectif commercial
+Security analysis pipeline for automated vulnerability detection in software projects. Analyzes source code (SAST), dependencies (SCA), and exposed secrets, then generates professional remediation reports enhanced with local AI (Ollama).
 
-Produit SaaS/commercial pour scanner automatiquement des projets et fournir des rapports de sécurité actionnables avec fixes concrets générés par IA.
+**Current State**: Specification phase with complete agent architecture documentation. Go implementation not yet started.
 
-## Architecture
+**Target**: Commercial SaaS product for automated security scanning with AI-generated fixes.
 
-```
-User Input
-    ↓
-Profiler Agent → Contextualization Agent
-    ↓                       ↓
-    ├──────────────┬────────┴────────┬──────────────┐
-    ↓              ↓                 ↓              ↓
-SAST Agent    SCA Agent       Secrets Agent    (parallel)
-(Semgrep)     (Trivy)         (Gitleaks)
-    ↓              ↓                 ↓
-    └──────────────┴────────┬────────┘
-                            ↓
-                   Aggregator Agent
-                            ↓
-                  Remediation Agent
-                            ↓
-                    Report Agent
-                            ↓
-                  JSON/HTML/PDF/MD
-```
+## Architecture Pattern
 
-## Stack technique
+The pipeline follows an **agent-based architecture** with sequential and parallel execution:
 
-- **Langage** : Go 1.21+
-- **IA locale** : Ollama (codellama)
-- **Scanners** :
-  - Semgrep (SAST - code vulnerabilities)
-  - Trivy (SCA - dependency CVEs)
-  - Gitleaks (Secrets detection)
+1. **Profiler Agent** → Analyzes project structure, languages, frameworks, dependencies
+2. **Contextualization Agent** → Uses Ollama to determine which security agents to activate based on project context
+3. **Parallel Security Scanners**:
+   - **SAST Agent** (Semgrep) - Source code vulnerabilities
+   - **SCA Agent** (Trivy) - Dependency CVEs
+   - **Secrets Agent** (Gitleaks) - Exposed credentials
+4. **Aggregator Agent** → Deduplicates, prioritizes, and categorizes findings
+5. **Remediation Agent** → Uses Ollama to generate concrete code fixes
+6. **Report Agent** → Generates multi-format reports (JSON/HTML/PDF/MD)
 
-## Agents de la pipeline
+Each agent has two documentation files:
+- `claude.md` - Detailed implementation specifications
+- `agent.json` - MCP (Model Context Protocol) declaration for tool integration
 
-### 1. Profiler Agent
-**Rôle** : Analyse initiale du projet
-- Détecte langages (Go, Python, JS, etc.)
-- Identifie frameworks (Gin, React, Django, etc.)
-- Extrait dépendances (go.mod, package.json, etc.)
-- Map structure du projet
-
-**Scanner** : Filesystem analysis
-**Output** : ProjectProfile (langages, frameworks, deps, structure)
-
-### 2. Contextualization Agent
-**Rôle** : Décide quels agents activer et avec quels paramètres
-- Analyse le profil avec Ollama (type: api/cli, domain: finance/crypto, criticité)
-- Active SAST si code source > 10 fichiers
-- Active SCA si dépendances externes > 0
-- Active Secrets (toujours - critique et rapide)
-- Configure sévérité et règles par agent
-
-**IA** : Ollama détermine contexte métier
-**Output** : AnalysisConfig (agents activés, configs, priorités)
-
-### 3. SAST Agent (Static Application Security Testing)
-**Rôle** : Détecte vulnérabilités dans le code source
-- SQL injection, XSS, command injection, path traversal
-- Crypto weaknesses, insecure randomness
-- Solidity (reentrancy, integer overflow, tx.origin)
-
-**Scanner** : Semgrep (1000+ règles, 30+ langages)
-**IA** : Ollama valide findings (réduit faux positifs 60-70%)
-**Output** : Code vulnerabilities avec CWE/OWASP mapping
-
-### 4. SCA Agent (Software Composition Analysis)
-**Rôle** : Détecte CVEs dans les dépendances
-- Scan dépendances avec Trivy (base CVE locale)
-- Check contre NVD, GitHub Advisory, Alpine, etc.
-- Support 15+ package managers
-
-**Scanner** : Trivy (pas de rate limits)
-**IA** : Ollama évalue exploitabilité dans contexte projet
-**Output** : Vulnerable dependencies avec CVSS scores
-
-### 5. Secrets Agent
-**Rôle** : Détecte credentials exposés
-- AWS keys, GitHub tokens, private keys, API keys
-- 25+ types de secrets (1000+ patterns)
-- Détection par regex + entropie
-
-**Scanner** : Gitleaks (filesystem + git history)
-**IA** : Ollama distingue vrais secrets vs placeholders (réduit faux positifs 70-80%)
-**Output** : Exposed secrets avec plans de révocation
-
-### 6. Aggregator Agent
-**Rôle** : Consolide et déduplique les findings
-- Déduplication (exact, similar, dependencies)
-- Priorisation (1-100) : sévérité + CVSS + exploitabilité + contexte + confiance
-- Catégorisation OWASP/CWE
-- Calcul Risk Score global (0-100)
-- Statistiques (par catégorie, sévérité, fichier)
-
-**Logic** : Deduplication + prioritization + categorization
-**Output** : AggregatedReport (52 findings sur 87, Risk Score: 67.5)
-
-### 7. Remediation Agent
-**Rôle** : Génère fixes concrets pour chaque finding
-- Code patches (avant/après avec code compilable)
-- Dependency updates (commandes exactes par package manager)
-- Secrets remediation (révocation + rotation)
-- Plans d'action étape par étape
-- Tests de validation
-- Alternatives de fix
-
-**IA** : Ollama génère code production-ready + commandes + plans
-**Output** : RemediationPlan par finding (complexity, time, expertise)
-
-### 8. Report Agent
-**Rôle** : Génère rapports professionnels multi-formats
-- JSON (CI/CD integration)
-- HTML (interactif avec Chart.js)
-- PDF (professionnel via wkhtmltopdf)
-- Markdown (documentation)
-- CSV (spreadsheet export)
-
-**IA** : Ollama génère executive summary (business-friendly)
-**Output** : Reports + compliance mapping (OWASP/CWE/PCI-DSS/ISO27001)
-
-## Rôle d'Ollama (IA locale)
-
-Ollama (codellama) enrichit l'analyse à chaque étape :
-
-| Agent | Rôle d'Ollama | Bénéfice |
-|-------|---------------|----------|
-| **Contextualization** | Détermine type/domain/criticité projet | Config optimale par contexte |
-| **SAST** | Valide vulns + génère recommendations | -60-70% faux positifs |
-| **SCA** | Évalue exploitabilité CVE dans contexte | Priorisation intelligente |
-| **Secrets** | Distingue vrais secrets vs placeholders | -70-80% faux positifs |
-| **Remediation** | Génère code fixes + commandes + plans | Fixes production-ready |
-| **Report** | Génère executive summary business | Adapté audience management |
-
-**Pourquoi Ollama ?**
-- ✅ Local (gratuit, pas de rate limits, RGPD-compliant)
-- ✅ Pas d'API keys nécessaires
-- ✅ Rapide (suffisant pour validation/génération)
-- ✅ Contexte projet préservé
-
-## Structure du projet
+## Project Structure
 
 ```
-security-pipeline/
-├── claude.md                      # Ce fichier
-├── main.go                        # Entry point
-├── go.mod / go.sum
-│
-├── cmd/
-│   └── pipeline/
-│       └── main.go                # CLI
-│
-├── internal/
-│   ├── agents/
-│   │   ├── profiler/
-│   │   │   ├── claude.md          # Doc agent
-│   │   │   ├── agent.json         # MCP declaration
-│   │   │   └── profiler.go
-│   │   ├── contextualization/
-│   │   │   ├── claude.md
-│   │   │   ├── agent.json
-│   │   │   └── contextualization.go
-│   │   ├── sast/
-│   │   │   ├── claude.md
-│   │   │   ├── agent.json
-│   │   │   ├── sast.go
-│   │   │   └── semgrep/
-│   │   │       ├── client.go
-│   │   │       └── parser.go
-│   │   ├── sca/
-│   │   │   ├── claude.md
-│   │   │   ├── agent.json
-│   │   │   ├── sca.go
-│   │   │   └── trivy/
-│   │   │       ├── client.go
-│   │   │       └── parser.go
-│   │   ├── secrets/
-│   │   │   ├── claude.md
-│   │   │   ├── agent.json
-│   │   │   ├── secrets.go
-│   │   │   └── gitleaks/
-│   │   │       ├── client.go
-│   │   │       └── parser.go
-│   │   ├── aggregator/
-│   │   │   ├── claude.md
-│   │   │   ├── agent.json
-│   │   │   ├── aggregator.go
-│   │   │   └── deduplicator/
-│   │   ├── remediation/
-│   │   │   ├── claude.md
-│   │   │   ├── agent.json
-│   │   │   ├── remediation.go
-│   │   │   └── generators/
-│   │   └── report/
-│   │       ├── claude.md
-│   │       ├── agent.json
-│   │       ├── report.go
-│   │       └── formatters/
-│   │
-│   ├── pipeline/
-│   │   ├── orchestrator.go        # Gère exécution séquentielle/parallèle
-│   │   └── context.go             # Context partagé entre agents
-│   │
-│   └── models/
-│       ├── finding.go
-│       ├── vulnerability.go
-│       └── report.go
-│
-├── pkg/
-│   ├── ollama/
-│   │   └── client.go              # Client Ollama
-│   └── utils/
-│       ├── logger.go
-│       └── config.go
-│
-└── configs/
-    └── config.yaml                # Pipeline config
+security_project/
+├── CLAUDE.md              # This file
+├── claude.md              # Original French architecture doc
+└── agents/
+    ├── profiler_agent/
+    ├── contextualization_agent/
+    ├── sast_agent/
+    ├── sca_agent/
+    ├── secrets_agent/
+    ├── aggregator_agent/
+    ├── remediation_agent/
+    └── report_agent/
 ```
 
-## Installation
+**Planned Structure** (not yet implemented):
+```
+internal/
+├── agents/          # Agent implementations
+├── pipeline/        # Orchestrator and shared context
+└── models/          # Shared data structures
+pkg/
+├── ollama/          # Ollama client
+└── utils/           # Shared utilities
+cmd/pipeline/        # CLI entry point
+```
 
-### Prérequis
+## Key Design Decisions
+
+### External Tool Integration
+
+The pipeline wraps three security scanners:
+- **Semgrep** (SAST) - Multi-language static analysis, 1000+ rules
+- **Trivy** (SCA) - Dependency vulnerability scanner, CVE database
+- **Gitleaks** (Secrets) - Credential and secret detection
+
+**Important**: All must be installed separately. Check availability at agent initialization.
+
+### Ollama Integration Strategy
+
+Ollama (codellama) enhances analysis at multiple stages:
+
+| Agent | Ollama Role | Benefit |
+|-------|-------------|---------|
+| Contextualization | Determines project type/domain/criticality | Optimal agent configuration |
+| SAST | Validates vulnerabilities in context | -60-70% false positives |
+| SCA | Evaluates CVE exploitability | Smart prioritization |
+| Secrets | Distinguishes real secrets vs placeholders | -70-80% false positives |
+| Remediation | Generates production-ready code fixes | Actionable patches |
+| Report | Creates business-friendly executive summary | Management-ready reports |
+
+**Why Ollama?**
+- Local execution (GDPR-compliant, no API costs, no rate limits)
+- Context preservation across pipeline stages
+- Sufficient quality for validation and generation tasks
+
+### Pipeline Context Flow
+
+Each agent receives and updates a shared `pipeline.Context`:
+
+```go
+type Context struct {
+    ProjectPath     string
+    ProjectProfile  ProjectProfile      // From Profiler
+    AnalysisConfig  AnalysisConfig      // From Contextualization
+    Findings        []Finding           // Accumulated from SAST/SCA/Secrets
+    AggregatedReport AggregatedReport   // From Aggregator
+    RemediationPlans []RemediationPlan  // From Remediation
+    Reports         map[string][]byte   // From Report
+    Errors          []string
+}
+```
+
+## Agent Implementation Notes
+
+### Profiler Agent
+- Language detection via file extensions (30+ languages)
+- Framework identification via dependency files (package.json, go.mod, requirements.txt, etc.)
+- Exclude: `node_modules/`, `vendor/`, `.git/`, `venv/`, `__pycache__/`, `build/`, `dist/`
+- Must handle monorepos and multi-language projects
+
+### Contextualization Agent
+- Determines project type (API/CLI/web/library), domain (finance/crypto/healthcare), and criticality
+- Activates SAST only if source files > 10
+- Activates SCA only if dependencies exist
+- Always activates Secrets (critical and fast)
+- Configures severity thresholds per agent based on project context
+
+### SAST Agent
+- Use Semgrep with `--config auto` for default rules or specific rulesets for targeted scans
+- Exit code 1 means findings found (not an error)
+- Map Semgrep severity: ERROR→high, WARNING→medium, INFO→low
+- Ollama validation optional but recommended for medium/low confidence findings
+- Extract 20 lines of context around vulnerable code for validation
+
+### SCA Agent
+- Use Trivy in offline mode for reliability (no GitHub rate limits)
+- Filter by CVSS score based on context severity config
+- Ollama evaluates if CVE is actually exploitable in the project's context
+- Distinguish direct vs transitive dependencies
+
+### Secrets Agent
+- Gitleaks can scan filesystem only (`detect`) or git history (`protect`)
+- Git history scanning disabled by default (slow, high false positives)
+- Ollama filters out test fixtures, example configs, and placeholder values
+- Entropy threshold: 4.5+ (configurable)
+
+### Aggregator Agent
+- Deduplication strategies: exact match, similar (fuzzy), dependency chain
+- Priority score (1-100): severity + CVSS + exploitability + context + confidence
+- Calculate global Risk Score (0-100) for project
+- Map findings to compliance frameworks (OWASP, CWE, PCI-DSS, ISO27001)
+
+### Remediation Agent
+- Generate three types of fixes:
+  - Code patches (before/after with syntax highlighting)
+  - Dependency updates (exact package manager commands)
+  - Secret remediation (revocation + rotation steps)
+- Include complexity estimate, time estimate, and required expertise level
+- Provide alternatives when multiple fix approaches exist
+
+### Report Agent
+- Support formats: JSON (CI/CD), HTML (interactive), PDF (professional), Markdown (docs), CSV (spreadsheet)
+- HTML uses Chart.js for vulnerability distribution graphs
+- PDF generation requires wkhtmltopdf (optional dependency)
+- Ollama generates executive summary in business-friendly language
+
+## When Implementing
+
+### Required External Dependencies
+
+All commands must be verified at startup:
 
 ```bash
-# Go 1.21+
-go version
+# Check availability
+go version          # Go 1.21+
+ollama --version    # Ollama
+semgrep --version   # Python pip package
+trivy --version     # Homebrew/binary
+gitleaks version    # Homebrew/binary
 
-# Ollama (IA locale)
+# Install commands for user guidance
+pip install semgrep
+brew install trivy gitleaks wkhtmltopdf
 curl -fsSL https://ollama.ai/install.sh | sh
 ollama pull codellama
-
-# Scanners
-pip install semgrep
-brew install trivy
-brew install gitleaks
-
-# PDF generation (optionnel)
-brew install wkhtmltopdf
 ```
 
-### Build
+### Configuration Files
 
-```bash
-git clone <repo-url>
-cd security-pipeline
-go mod download
-go build -o security-pipeline ./cmd/pipeline
-```
-
-## Configuration
-
-### Fichier .env
-
-```env
-# Ollama (requis)
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=codellama
-
-# Output (optionnel)
-REPORT_OUTPUT_DIR=.security-scan
-REPORT_THEME=light
-```
-
-### Fichier config.yaml
+Support both `.env` and `config.yaml`:
 
 ```yaml
 pipeline:
@@ -286,62 +197,89 @@ agents:
     severity: high
   secrets:
     enabled: true
-    entropy_threshold: 4.5
     scan_git_history: false
 
+ollama:
+  url: http://localhost:11434
+  model: codellama
+
 reporting:
+  output_dir: .security-scan
   formats: [json, html, pdf, markdown]
   include_executive_summary: true
-  include_compliance: true
 ```
 
-## Usage
+### Error Handling
 
-### CLI basique
+- **Scanner not installed**: Fail fast with installation instructions
+- **Ollama unavailable**: Degrade gracefully (skip validation/enhancement steps)
+- **Scanner error**: Log and continue with other agents
+- **Timeout**: Configurable per-agent (default 5min for SAST/SCA, 2min for Secrets)
+
+### Testing Strategy
+
+Each agent should have:
+1. Unit tests with mocked scanner output
+2. Integration tests with real small projects (Go API, Python script, JS frontend, Solidity contract)
+3. End-to-end test with sample vulnerable project
+
+Test data location: `testdata/` with subdirectories per vulnerability type
+
+### Performance Considerations
+
+- Run SAST/SCA/Secrets agents in parallel (goroutines with context cancellation)
+- Lazy load Ollama client (only when validation enabled)
+- Cache project profile between runs (hash-based invalidation)
+- Stream large scanner outputs instead of buffering in memory
+- Limit Semgrep to relevant file extensions only
+
+## CLI Interface
 
 ```bash
-# Scan projet
+# Basic scan
 ./security-pipeline analyze /path/to/project
 
-# Avec options
+# With options
 ./security-pipeline analyze /path/to/project \
   --format json,html,pdf \
   --output ./reports \
-  --severity high
+  --severity high \
+  --config ./custom-config.yaml
 
-# Verbose
+# Quick scan (skip Ollama validation)
+./security-pipeline analyze /path/to/project --quick
+
+# Specific agents only
+./security-pipeline analyze /path/to/project --agents sast,secrets
+
+# Verbose output
 ./security-pipeline analyze /path/to/project --verbose
 ```
 
-### Output
-
+Expected output structure:
 ```
-============================================================
-  SECURITY SCAN COMPLETE
-============================================================
-
-Project: my-api
-Risk Score: 67.5/100 (HIGH)
-
-Findings Summary:
-  Critical: 3
-  High:     12
-  Medium:   28
-  Low:      9
-  Total:    52
-
-Reports Generated:
-  JSON: .security-scan/security-report-20251117-103000.json
-  HTML: .security-scan/security-report-20251117-103000.html
-  PDF:  .security-scan/security-report-20251117-103000.pdf
-  MARKDOWN: .security-scan/security-report-20251117-103000.md
-
-============================================================
+.security-scan/
+├── security-report-YYYYMMDD-HHMMSS.json
+├── security-report-YYYYMMDD-HHMMSS.html
+├── security-report-YYYYMMDD-HHMMSS.pdf
+└── security-report-YYYYMMDD-HHMMSS.md
 ```
 
-## Sécurité du pipeline
+## Development Priorities
 
-- ✅ Aucune donnée envoyée hors du système (Ollama local)
-- ✅ Secrets jamais loggés en clair
-- ✅ Rapports avec secrets redacted
-- ✅ RGPD-compliant (traitement local)
+1. **Core pipeline orchestrator** - Context management, agent execution flow
+2. **Profiler + Contextualization** - Foundation for all other agents
+3. **SAST Agent** - Highest value (code vulnerabilities)
+4. **Secrets Agent** - Fast to implement, high impact
+5. **SCA Agent** - Dependency scanning
+6. **Aggregator** - Deduplication and prioritization logic
+7. **Remediation** - AI-generated fixes (differentiation feature)
+8. **Report** - Multi-format output generation
+
+## Security Considerations
+
+- Never log secrets in plaintext (redact in logs and errors)
+- Reports should redact secret values (show type and location only)
+- All data processing is local (GDPR-compliant by design)
+- Sandboxed execution for scanner subprocesses
+- Validate all file paths to prevent traversal attacks in profiler

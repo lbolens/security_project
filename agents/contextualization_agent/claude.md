@@ -56,9 +56,11 @@ type AgentConfig struct {
 
 **Activer si :**
 - Le projet contient du code compilé/interprété (Go, Python, JS, Java, etc.)
+- Plus de 10 fichiers de code source détectés
 
 **Ne PAS activer si :**
 - Projet purement config (YAML, JSON uniquement)
+- Moins de 5 fichiers de code
 
 **Configuration selon langage :**
 ```go
@@ -144,6 +146,11 @@ func configureSCA(profile profiler.ProjectProfile) AgentConfig {
 ```
 
 ### 3. Activation Secrets Agent
+
+**Activer si :**
+- Projet contient des fichiers de config (.env, config.yaml, etc.)
+- C'est un projet avec infrastructure (docker, k8s, terraform)
+- Présence de scripts (bash, python)
 
 **TOUJOURS activer** : La détection de secrets est critique et rapide
 
