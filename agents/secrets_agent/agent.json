@@ -1,0 +1,461 @@
+{
+  "name": "secrets-agent",
+  "version": "1.0.0",
+  "description": "Secrets detection agent that scans code for exposed credentials, API keys, and tokens using Gitleaks, enriched with AI-powered validation to reduce false positives via Ollama.",
+  "capabilities": [
+    "credential_detection",
+    "api_key_scanning",
+    "private_key_detection",
+    "entropy_analysis",
+    "git_history_scanning",
+    "secret_validation"
+  ],
+  "dependencies": {
+    "external_tools": [
+      {
+        "name": "gitleaks",
+        "version": ">=8.18.0",
+        "required": true,
+        "install_command": "brew install gitleaks",
+        "check_command": "gitleaks version",
+        "alternative_install": "go install github.com/gitleaks/gitleaks/v8@latest"
+      }
+    ]
+  },
+  "detected_secret_types": [
+    "aws-access-key",
+    "aws-secret-key",
+    "github-token",
+    "github-pat",
+    "gitlab-token",
+    "slack-token",
+    "slack-webhook",
+    "stripe-key",
+    "paypal-secret",
+    "gcp-api-key",
+    "azure-client-secret",
+    "private-key",
+    "jwt-token",
+    "api-key",
+    "mongodb-uri",
+    "postgres-password",
+    "redis-password",
+    "ethereum-private-key",
+    "bitcoin-private-key",
+    "mnemonic-phrase",
+    "oauth-token",
+    "twilio-api-key",
+    "sendgrid-api-key",
+    "mailgun-api-key",
+    "discord-webhook"
+  ],
+  "tools": [
+    {
+      "name": "scan_secrets",
+      "description": "Scans project for exposed secrets using Gitleaks with AI validation to filter false positives",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_path": {
+            "type": "string",
+            "description": "Absolute path to the project directory"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "severity": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"],
+                "description": "Minimum severity threshold (secrets are always critical by default)",
+                "default": "critical"
+              },
+              "entropy_threshold": {
+                "type": "number",
+                "description": "Minimum entropy score for detection (0-8)",
+                "default": 4.5,
+                "minimum": 0,
+                "maximum": 8
+              },
+              "scan_git_history": {
+                "type": "boolean",
+                "description": "Scan git commit history for leaked secrets",
+                "default": false
+              },
+              "max_depth": {
+                "type": "integer",
+                "description": "Max git history depth to scan (0 = unlimited)",
+                "default": 0
+              },
+              "max_findings": {
+                "type": "integer",
+                "description": "Maximum number of findings to report",
+                "default": 50
+              },
+              "validate_with_ollama": {
+                "type": "boolean",
+                "description": "Use Ollama to validate if secrets are active/real",
+                "default": true
+              },
+              "baseline_path": {
+                "type": "string",
+                "description": "Path to Gitleaks baseline file (to ignore known secrets)",
+                "default": ""
+              },
+              "config_path": {
+                "type": "string",
+                "description": "Path to custom Gitleaks config (.gitleaks.toml)",
+                "default": ""
+              }
+            }
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context from contextualization-agent",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Project type (api, cli, library, smart-contract)"
+              },
+              "domain": {
+                "type": "string",
+                "description": "Project domain (finance, crypto, healthcare, general)"
+              },
+              "is_production": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": ["project_path", "config"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique finding identifier"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["exposed-secret"]
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"]
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Secret exposure title"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Detailed description"
+                },
+                "file_path": {
+                  "type": "string",
+                  "description": "File containing the secret"
+                },
+                "line_number": {
+                  "type": "integer",
+                  "description": "Line where secret appears"
+                },
+                "secret_type": {
+                  "type": "string",
+                  "description": "Type of secret detected"
+                },
+                "secret": {
+                  "type": "string",
+                  "description": "Redacted secret (first/last 4 chars)"
+                },
+                "match": {
+                  "type": "string",
+                  "description": "Matching pattern"
+                },
+                "entropy": {
+                  "type": "number",
+                  "description": "Entropy score (0-8)"
+                },
+                "commit_hash": {
+                  "type": "string",
+                  "description": "Git commit hash (if scanning history)"
+                },
+                "commit_author": {
+                  "type": "string",
+                  "description": "Commit author"
+                },
+                "commit_date": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Commit date"
+                },
+                "is_active": {
+                  "type": "boolean",
+                  "description": "Whether secret is likely active (Ollama assessment)"
+                },
+                "impact": {
+                  "type": "string",
+                  "description": "Impact if exploited"
+                },
+                "recommendation": {
+                  "type": "string",
+                  "description": "Remediation steps (revoke, rotate, fix)"
+                },
+                "rule_id": {
+                  "type": "string",
+                  "description": "Gitleaks rule identifier"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": ["gitleaks"]
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "severity",
+                "file_path",
+                "line_number",
+                "secret_type",
+                "secret"
+              ]
+            }
+          },
+          "scan_summary": {
+            "type": "object",
+            "properties": {
+              "files_scanned": {
+                "type": "integer",
+                "description": "Total files scanned"
+              },
+              "secrets_found": {
+                "type": "integer",
+                "description": "Total secrets detected (before validation)"
+              },
+              "active_secrets": {
+                "type": "integer",
+                "description": "Active secrets (after Ollama validation)"
+              },
+              "findings_by_type": {
+                "type": "object",
+                "additionalProperties": {"type": "integer"},
+                "description": "Count per secret type"
+              },
+              "duration_ms": {
+                "type": "integer",
+                "description": "Scan duration in milliseconds"
+              },
+              "gitleaks_version": {
+                "type": "string"
+              },
+              "git_history_scanned": {
+                "type": "boolean"
+              }
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Non-blocking errors during scan"
+          }
+        },
+        "required": ["findings", "scan_summary"]
+      }
+    },
+    {
+      "name": "validate_secret",
+      "description": "Uses Ollama to validate if a detected secret is active/real or a false positive",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Secret finding to validate"
+          },
+          "code_context": {
+            "type": "string",
+            "description": "Code context around the secret"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context"
+          }
+        },
+        "required": ["finding", "code_context", "project_context"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "is_active": {
+            "type": "boolean",
+            "description": "Whether secret is likely active"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Explanation"
+          },
+          "impact": {
+            "type": "string",
+            "description": "Potential impact if exploited"
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "Immediate actions"
+          }
+        },
+        "required": ["is_active", "confidence", "reasoning"]
+      }
+    },
+    {
+      "name": "generate_remediation",
+      "description": "Generates detailed remediation plan for exposed secret",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Secret finding"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context"
+          }
+        },
+        "required": ["finding", "project_context"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "remediation": {
+            "type": "string",
+            "description": "Markdown-formatted remediation plan with revoke steps, code fix, git cleanup, and prevention"
+          }
+        },
+        "required": ["remediation"]
+      }
+    },
+    {
+      "name": "scan_git_history",
+      "description": "Scans git commit history for leaked secrets",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_path": {
+            "type": "string"
+          },
+          "max_depth": {
+            "type": "integer",
+            "description": "Max commits to scan (0 = unlimited)",
+            "default": 100
+          }
+        },
+        "required": ["project_path"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {"type": "object"}
+          },
+          "commits_scanned": {
+            "type": "integer"
+          }
+        },
+        "required": ["findings", "commits_scanned"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [
+      {
+        "name": "OLLAMA_URL",
+        "description": "URL of the Ollama service for secret validation",
+        "default": "http://localhost:11434"
+      }
+    ],
+    "optional_env_vars": [
+      {
+        "name": "OLLAMA_MODEL",
+        "description": "Ollama model to use for validation",
+        "default": "codellama"
+      },
+      {
+        "name": "GITLEAKS_CONFIG_PATH",
+        "description": "Path to custom Gitleaks configuration",
+        "default": ""
+      },
+      {
+        "name": "SECRETS_BASELINE_PATH",
+        "description": "Path to baseline file (known safe secrets)",
+        "default": ""
+      },
+      {
+        "name": "SECRETS_ENTROPY_THRESHOLD",
+        "description": "Default entropy threshold",
+        "default": "4.5"
+      },
+      {
+        "name": "SECRETS_SCAN_GIT_HISTORY",
+        "description": "Enable git history scanning by default",
+        "default": "false"
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["contextualization-agent"],
+    "output_to": ["aggregator-agent"],
+    "dependencies": ["gitleaks", "ollama"]
+  },
+  "performance": {
+    "typical_scan_time": "1-5s per project (filesystem), 10-60s (with git history)",
+    "memory_usage": "low",
+    "cpu_usage": "low",
+    "io_usage": "medium (file reading)"
+  },
+  "notes": {
+    "gitleaks_advantages": [
+      "Fastest secret scanner (written in Go)",
+      "1000+ detection patterns",
+      "Entropy-based detection for unknown secrets",
+      "Git history scanning support",
+      "Industry standard (used by GitHub, GitLab)",
+      "Free and open source",
+      "JSON output for easy parsing"
+    ],
+    "common_false_positives": [
+      "Placeholder values (YOUR_API_KEY_HERE, xxx, test123)",
+      "Example/documentation code",
+      "Commented out code",
+      "Test fixtures",
+      "Environment variable examples in README"
+    ],
+    "ollama_validation_benefits": [
+      "Reduces false positives by 70-80%",
+      "Contextual understanding (test vs production code)",
+      "Identifies placeholder patterns",
+      "Assesses real-world exploitability",
+      "Generates specific remediation steps"
+    ],
+    "remediation_priorities": [
+      "1. Private keys (RSA, ECDSA, blockchain) - CRITICAL",
+      "2. Cloud provider keys (AWS, GCP, Azure) - CRITICAL",
+      "3. Payment provider keys (Stripe, PayPal) - CRITICAL",
+      "4. VCS tokens (GitHub, GitLab) - HIGH",
+      "5. API keys (generic) - MEDIUM",
+      "6. JWT tokens - MEDIUM"
+    ]
+  }
+}

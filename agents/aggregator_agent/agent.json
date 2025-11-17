@@ -1,0 +1,569 @@
+{
+  "name": "aggregator-agent",
+  "version": "1.0.0",
+  "description": "Aggregates findings from SAST, SCA, and Secrets agents, eliminates duplicates, prioritizes by criticality, and generates consolidated security report with statistics and risk scoring.",
+  "capabilities": [
+    "finding_consolidation",
+    "deduplication",
+    "prioritization",
+    "categorization",
+    "risk_scoring",
+    "statistical_analysis"
+  ],
+  "tools": [
+    {
+      "name": "aggregate_findings",
+      "description": "Consolidates findings from all analysis agents, removes duplicates, and generates prioritized report",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "sast_findings": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": "Findings from SAST agent"
+          },
+          "sca_findings": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": "Findings from SCA agent"
+          },
+          "secrets_findings": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": "Findings from Secrets agent"
+          },
+          "project_profile": {
+            "type": "object",
+            "description": "Project profile from profiler agent"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context from contextualization agent"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "enable_deduplication": {
+                "type": "boolean",
+                "description": "Enable duplicate removal",
+                "default": true
+              },
+              "dedup_strategy": {
+                "type": "string",
+                "enum": ["exact", "similar", "aggressive"],
+                "description": "Deduplication strategy",
+                "default": "similar"
+              },
+              "min_confidence": {
+                "type": "string",
+                "enum": ["low", "medium", "high"],
+                "description": "Minimum confidence level to include",
+                "default": "low"
+              },
+              "group_similar_findings": {
+                "type": "boolean",
+                "description": "Group similar findings in same file",
+                "default": true
+              },
+              "similarity_threshold": {
+                "type": "integer",
+                "description": "Number of similar findings before grouping (0 = disabled)",
+                "default": 3
+              }
+            }
+          }
+        },
+        "required": ["sast_findings", "sca_findings", "secrets_findings"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total_findings": {
+                "type": "integer",
+                "description": "Total findings before deduplication"
+              },
+              "unique_findings": {
+                "type": "integer",
+                "description": "Unique findings after deduplication"
+              },
+              "duplicates_removed": {
+                "type": "integer"
+              },
+              "critical_findings": {"type": "integer"},
+              "high_findings": {"type": "integer"},
+              "medium_findings": {"type": "integer"},
+              "low_findings": {"type": "integer"},
+              "sast_count": {"type": "integer"},
+              "sca_count": {"type": "integer"},
+              "secrets_count": {"type": "integer"},
+              "files_affected": {"type": "integer"},
+              "components_affected": {"type": "integer"},
+              "average_cvss": {
+                "type": "number",
+                "description": "Average CVSS score"
+              },
+              "risk_score": {
+                "type": "number",
+                "description": "Overall project risk score (0-100)"
+              }
+            },
+            "required": ["total_findings", "unique_findings", "risk_score"]
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique aggregated finding ID"
+                },
+                "original_ids": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "Original finding IDs from source agents"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Vulnerability type"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "injection",
+                    "cryptography",
+                    "access-control",
+                    "vulnerable-components",
+                    "sensitive-data",
+                    "logic-error",
+                    "numeric-error",
+                    "other"
+                  ],
+                  "description": "OWASP/CWE category"
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"]
+                },
+                "priority": {
+                  "type": "integer",
+                  "description": "Calculated priority score (1-100)",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "title": {"type": "string"},
+                "description": {"type": "string"},
+                "file_path": {"type": "string"},
+                "line_number": {"type": "integer"},
+                "component_name": {
+                  "type": "string",
+                  "description": "Package/module name if applicable"
+                },
+                "cwe": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "owasp": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "cvss": {
+                  "type": "number",
+                  "description": "CVSS score if applicable"
+                },
+                "cve": {
+                  "type": "string",
+                  "description": "CVE ID if applicable"
+                },
+                "business_impact": {
+                  "type": "string",
+                  "description": "Business impact analysis"
+                },
+                "exploitability": {"type": "string"},
+                "risk_level": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"]
+                },
+                "recommendation": {"type": "string"},
+                "fix_complexity": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"],
+                  "description": "Estimated fix complexity"
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["sast", "sca", "secrets"]
+                  },
+                  "description": "Which agents detected this finding"
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"]
+                },
+                "first_detected": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              },
+              "required": ["id", "type", "category", "severity", "priority", "sources"]
+            }
+          },
+          "statistics": {
+            "type": "object",
+            "properties": {
+              "by_category": {
+                "type": "object",
+                "additionalProperties": {"type": "integer"},
+                "description": "Finding count per category"
+              },
+              "by_severity": {
+                "type": "object",
+                "additionalProperties": {"type": "integer"}
+              },
+              "by_source": {
+                "type": "object",
+                "additionalProperties": {"type": "integer"}
+              },
+              "by_file": {
+                "type": "object",
+                "additionalProperties": {"type": "integer"}
+              },
+              "by_component": {
+                "type": "object",
+                "additionalProperties": {"type": "integer"}
+              },
+              "top_vulnerabilities": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string"},
+                    "count": {"type": "integer"}
+                  }
+                }
+              },
+              "most_affected_files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "file_path": {"type": "string"},
+                    "count": {"type": "integer"}
+                  }
+                }
+              },
+              "coverage_metrics": {
+                "type": "object",
+                "properties": {
+                  "files_scanned": {"type": "integer"},
+                  "files_with_issues": {"type": "integer"},
+                  "coverage_percent": {"type": "number"},
+                  "lines_analyzed": {"type": "integer"}
+                }
+              }
+            }
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "timestamp": {"type": "string", "format": "date-time"},
+                "agent": {"type": "string"},
+                "action": {"type": "string"},
+                "finding_id": {"type": "string"},
+                "description": {"type": "string"}
+              }
+            },
+            "description": "Timeline of agent executions and findings"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "project_name": {"type": "string"},
+              "scan_date": {"type": "string", "format": "date-time"},
+              "duration_ms": {"type": "integer"},
+              "pipeline_version": {"type": "string"},
+              "agents": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "version": {"type": "string"},
+                    "duration_ms": {"type": "integer"},
+                    "status": {
+                      "type": "string",
+                      "enum": ["success", "warning", "error"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["summary", "findings", "statistics", "metadata"]
+      }
+    },
+    {
+      "name": "deduplicate_findings",
+      "description": "Removes duplicate findings using specified strategy",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {"type": "object"}
+          },
+          "strategy": {
+            "type": "string",
+            "enum": ["exact", "similar", "aggressive"],
+            "default": "similar"
+          }
+        },
+        "required": ["findings"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "deduplicated_findings": {
+            "type": "array",
+            "items": {"type": "object"}
+          },
+          "duplicates_removed": {"type": "integer"},
+          "dedup_groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {"type": "string"},
+                "count": {"type": "integer"},
+                "merged_into": {"type": "string"}
+              }
+            }
+          }
+        },
+        "required": ["deduplicated_findings", "duplicates_removed"]
+      }
+    },
+    {
+      "name": "calculate_priority",
+      "description": "Calculates priority score (1-100) for a finding",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Finding to prioritize"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context for contextual scoring"
+          }
+        },
+        "required": ["finding", "project_context"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "score_breakdown": {
+            "type": "object",
+            "properties": {
+              "severity_score": {"type": "integer"},
+              "cvss_score": {"type": "integer"},
+              "exploitability_score": {"type": "integer"},
+              "context_score": {"type": "integer"},
+              "confidence_score": {"type": "integer"}
+            }
+          }
+        },
+        "required": ["priority"]
+      }
+    },
+    {
+      "name": "calculate_risk_score",
+      "description": "Calculates overall project risk score (0-100)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {"type": "object"}
+          }
+        },
+        "required": ["findings"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "risk_score": {
+            "type": "number",
+            "description": "Overall risk score (0-100)"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "breakdown": {
+            "type": "object",
+            "properties": {
+              "critical_impact": {"type": "number"},
+              "high_impact": {"type": "number"},
+              "medium_impact": {"type": "number"},
+              "low_impact": {"type": "number"}
+            }
+          }
+        },
+        "required": ["risk_score", "risk_level"]
+      }
+    },
+    {
+      "name": "generate_statistics",
+      "description": "Generates comprehensive statistics from findings",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {"type": "object"}
+          },
+          "top_n": {
+            "type": "integer",
+            "description": "Number of top items to include in rankings",
+            "default": 10
+          }
+        },
+        "required": ["findings"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "statistics": {
+            "type": "object",
+            "description": "Complete statistics object"
+          }
+        },
+        "required": ["statistics"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [],
+    "optional_env_vars": [
+      {
+        "name": "AGGREGATOR_DEDUP_STRATEGY",
+        "description": "Default deduplication strategy",
+        "default": "similar"
+      },
+      {
+        "name": "AGGREGATOR_MIN_CONFIDENCE",
+        "description": "Minimum confidence to include findings",
+        "default": "low"
+      },
+      {
+        "name": "AGGREGATOR_GROUP_THRESHOLD",
+        "description": "Similarity threshold for grouping",
+        "default": "3"
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["sast-agent", "sca-agent", "secrets-agent"],
+    "output_to": ["remediation-agent", "report-agent"],
+    "dependencies": []
+  },
+  "deduplication_strategies": {
+    "exact": {
+      "description": "Remove exact duplicates (same file, line, type)",
+      "precision": "high",
+      "recall": "low",
+      "use_case": "Conservative deduplication"
+    },
+    "similar": {
+      "description": "Remove similar findings (same file, type, close lines)",
+      "precision": "medium",
+      "recall": "medium",
+      "use_case": "Balanced approach (recommended)"
+    },
+    "aggressive": {
+      "description": "Remove all similar findings including transitive dependencies",
+      "precision": "low",
+      "recall": "high",
+      "use_case": "Minimize noise, accept some false negatives"
+    }
+  },
+  "priority_calculation": {
+    "factors": [
+      {
+        "name": "severity",
+        "weight": 40,
+        "description": "Base severity level"
+      },
+      {
+        "name": "cvss",
+        "weight": 20,
+        "description": "CVSS score if available"
+      },
+      {
+        "name": "exploitability",
+        "weight": 15,
+        "description": "How easily exploitable"
+      },
+      {
+        "name": "context",
+        "weight": 15,
+        "description": "Project context (production, domain, type)"
+      },
+      {
+        "name": "confidence",
+        "weight": 10,
+        "description": "Detection confidence and source count"
+      }
+    ],
+    "total": 100
+  },
+  "risk_score_calculation": {
+    "description": "Overall project risk based on weighted severity distribution",
+    "formula": "(critical * 10 + high * 5 + medium * 2 + low * 1) / max_possible * 100",
+    "ranges": {
+      "0-25": "Low risk",
+      "26-50": "Medium risk",
+      "51-75": "High risk",
+      "76-100": "Critical risk"
+    }
+  },
+  "performance": {
+    "typical_processing_time": "100-500ms for 100 findings",
+    "memory_usage": "low",
+    "cpu_usage": "low",
+    "io_usage": "minimal"
+  },
+  "notes": {
+    "deduplication_benefits": [
+      "Reduces noise by 30-40% on average",
+      "Increases finding confidence when multiple sources agree",
+      "Groups related findings for easier remediation",
+      "Prevents alert fatigue"
+    ],
+    "priority_benefits": [
+      "Focus on highest impact issues first",
+      "Context-aware scoring (production > dev)",
+      "Actionable prioritization for developers",
+      "Risk-based remediation planning"
+    ]
+  }
+}

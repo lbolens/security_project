@@ -1,0 +1,477 @@
+{
+  "name": "sast-agent",
+  "version": "1.0.0",
+  "description": "Static Application Security Testing agent that analyzes source code for security vulnerabilities using Semgrep, enriched with AI-powered contextual validation and fix recommendations via Ollama.",
+  "capabilities": [
+    "static_code_analysis",
+    "vulnerability_detection",
+    "context_validation",
+    "multi_language_support",
+    "fix_generation"
+  ],
+  "dependencies": {
+    "external_tools": [
+      {
+        "name": "semgrep",
+        "version": ">=1.45.0",
+        "required": true,
+        "install_command": "pip install semgrep",
+        "check_command": "semgrep --version",
+        "alternative_install": "brew install semgrep"
+      }
+    ]
+  },
+  "supported_languages": [
+    "Go",
+    "Python",
+    "JavaScript",
+    "TypeScript",
+    "Java",
+    "C",
+    "C++",
+    "C#",
+    "Ruby",
+    "PHP",
+    "Rust",
+    "Kotlin",
+    "Scala",
+    "Swift",
+    "Solidity",
+    "Apex",
+    "Bash",
+    "Terraform",
+    "YAML",
+    "JSON"
+  ],
+  "tools": [
+    {
+      "name": "scan_project",
+      "description": "Performs comprehensive SAST scan using Semgrep with AI-powered validation to reduce false positives",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_path": {
+            "type": "string",
+            "description": "Absolute path to the project directory"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of programming languages detected in the project"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "rules": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "sql-injection",
+                    "xss",
+                    "command-injection",
+                    "path-traversal",
+                    "unsafe-reflection",
+                    "prototype-pollution",
+                    "eval-usage",
+                    "insecure-random",
+                    "deserialization",
+                    "yaml-load",
+                    "reentrancy",
+                    "integer-overflow",
+                    "delegatecall",
+                    "tx-origin",
+                    "hardcoded-secrets",
+                    "weak-crypto",
+                    "xxe",
+                    "ldap-injection",
+                    "jwt-vulnerabilities",
+                    "insecure-transport"
+                  ]
+                },
+                "description": "Specific vulnerability rules to check (empty = all rules)"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"],
+                "description": "Minimum severity threshold",
+                "default": "medium"
+              },
+              "skip_patterns": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "File/directory patterns to exclude from scanning",
+                "default": ["*_test.go", "*.test.js", "test/", "tests/", "node_modules/"]
+              },
+              "max_findings": {
+                "type": "integer",
+                "description": "Maximum number of findings to report",
+                "default": 100
+              },
+              "validate_with_ollama": {
+                "type": "boolean",
+                "description": "Use Ollama to validate findings and reduce false positives",
+                "default": true
+              },
+              "confidence_threshold": {
+                "type": "string",
+                "enum": ["low", "medium", "high"],
+                "description": "Minimum confidence level to report findings",
+                "default": "medium"
+              },
+              "timeout_seconds": {
+                "type": "integer",
+                "description": "Timeout for Semgrep scan in seconds",
+                "default": 300
+              }
+            },
+            "required": ["severity"]
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context from contextualization-agent",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Project type (api, cli, library, smart-contract)"
+              },
+              "domain": {
+                "type": "string",
+                "description": "Project domain (finance, crypto, healthcare, general)"
+              },
+              "frameworks": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          }
+        },
+        "required": ["project_path", "languages", "config"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique finding identifier (UUID)"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Vulnerability type"
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"]
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Short vulnerability title"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Detailed vulnerability description"
+                },
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to vulnerable file"
+                },
+                "line_number": {
+                  "type": "integer",
+                  "description": "Starting line number"
+                },
+                "end_line_number": {
+                  "type": "integer",
+                  "description": "Ending line number"
+                },
+                "code_snippet": {
+                  "type": "string",
+                  "description": "Code excerpt showing the vulnerability"
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"],
+                  "description": "Confidence level in this finding"
+                },
+                "cwe": {
+                  "type": "string",
+                  "description": "CWE identifier (e.g., CWE-89)"
+                },
+                "owasp": {
+                  "type": "string",
+                  "description": "OWASP Top 10 classification"
+                },
+                "exploitability": {
+                  "type": "string",
+                  "description": "Ollama analysis of exploitability in project context"
+                },
+                "risk_level": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"],
+                  "description": "Actual risk level after validation"
+                },
+                "recommendation": {
+                  "type": "string",
+                  "description": "Detailed fix recommendation with code examples"
+                },
+                "check_id": {
+                  "type": "string",
+                  "description": "Semgrep rule identifier"
+                },
+                "validated_by": {
+                  "type": "string",
+                  "enum": ["semgrep", "semgrep+ollama"],
+                  "description": "Method used to validate this finding"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "severity",
+                "title",
+                "file_path",
+                "line_number",
+                "confidence"
+              ]
+            }
+          },
+          "scan_summary": {
+            "type": "object",
+            "properties": {
+              "files_scanned": {
+                "type": "integer",
+                "description": "Total number of files scanned"
+              },
+              "rules_applied": {
+                "type": "integer",
+                "description": "Number of Semgrep rules applied"
+              },
+              "duration_ms": {
+                "type": "integer",
+                "description": "Scan duration in milliseconds"
+              },
+              "findings_by_severity": {
+                "type": "object",
+                "properties": {
+                  "critical": {"type": "integer"},
+                  "high": {"type": "integer"},
+                  "medium": {"type": "integer"},
+                  "low": {"type": "integer"}
+                }
+              },
+              "findings_by_type": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "Count of findings per vulnerability type"
+              },
+              "semgrep_version": {
+                "type": "string"
+              }
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Non-blocking errors encountered during scan"
+          }
+        },
+        "required": ["findings", "scan_summary"]
+      }
+    },
+    {
+      "name": "validate_finding",
+      "description": "Uses Ollama to validate if a detected pattern is a real vulnerability or false positive",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Finding to validate",
+            "properties": {
+              "type": {"type": "string"},
+              "file_path": {"type": "string"},
+              "line_number": {"type": "integer"},
+              "code_snippet": {"type": "string"},
+              "check_id": {"type": "string"}
+            },
+            "required": ["type", "file_path", "line_number", "code_snippet"]
+          },
+          "code_context": {
+            "type": "string",
+            "description": "Extended code context (20+ lines) around the finding"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context information"
+          }
+        },
+        "required": ["finding", "code_context", "project_context"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "is_vulnerable": {
+            "type": "boolean",
+            "description": "Whether this is a real vulnerability"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Confidence in the validation result"
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Explanation of why this is/isn't vulnerable"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "exploitability": {
+            "type": "string",
+            "description": "Description of exploitability"
+          }
+        },
+        "required": ["is_vulnerable", "confidence", "reasoning", "risk_level"]
+      }
+    },
+    {
+      "name": "generate_fix_recommendation",
+      "description": "Generates detailed fix recommendation for a vulnerability",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Vulnerability finding"
+          }
+        },
+        "required": ["finding"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "recommendation": {
+            "type": "string",
+            "description": "Markdown-formatted fix recommendation with root cause, fix code, alternatives, and testing steps"
+          }
+        },
+        "required": ["recommendation"]
+      }
+    },
+    {
+      "name": "get_available_rulesets",
+      "description": "Returns list of available Semgrep rulesets",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "rulesets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "description": {"type": "string"},
+                "rule_count": {"type": "integer"},
+                "languages": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "required": ["rulesets"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [
+      {
+        "name": "OLLAMA_URL",
+        "description": "URL of the Ollama service for context validation",
+        "default": "http://localhost:11434"
+      }
+    ],
+    "optional_env_vars": [
+      {
+        "name": "OLLAMA_MODEL",
+        "description": "Ollama model to use for validation",
+        "default": "codellama"
+      },
+      {
+        "name": "SEMGREP_TIMEOUT",
+        "description": "Timeout for Semgrep scan in seconds",
+        "default": "300"
+      },
+      {
+        "name": "SAST_VALIDATE_ALL",
+        "description": "Validate all findings with Ollama (not just low confidence)",
+        "default": "false"
+      },
+      {
+        "name": "SAST_PARALLEL_VALIDATION",
+        "description": "Number of findings to validate in parallel with Ollama",
+        "default": "3"
+      },
+      {
+        "name": "SEMGREP_RULES_PATH",
+        "description": "Path to custom Semgrep rules (optional)",
+        "default": ""
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["contextualization-agent"],
+    "output_to": ["aggregator-agent"],
+    "dependencies": ["semgrep", "ollama"]
+  },
+  "performance": {
+    "typical_scan_time": "5-30s per 1000 files",
+    "memory_usage": "low-medium",
+    "cpu_usage": "medium (Semgrep AST parsing)",
+    "io_usage": "medium (file reading)"
+  },
+  "notes": {
+    "semgrep_advantages": [
+      "30+ languages supported natively",
+      "1000+ security rules maintained by community",
+      "AST-based analysis (very accurate)",
+      "Fast Tree-sitter parsing",
+      "Free and open source",
+      "Replaces multiple tools (Bandit, ESLint Security, Gosec, Brakeman)",
+      "CWE and OWASP mappings built-in",
+      "Custom rules support"
+    ],
+    "default_rulesets": [
+      "p/security-audit - General security rules",
+      "p/owasp-top-ten - OWASP Top 10",
+      "p/cwe-top-25 - CWE Top 25",
+      "p/sql-injection - SQL injection",
+      "p/xss - Cross-site scripting",
+      "p/command-injection - Command injection",
+      "p/crypto - Cryptographic issues",
+      "p/jwt - JWT vulnerabilities"
+    ]
+  }
+}

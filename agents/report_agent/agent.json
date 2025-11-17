@@ -1,0 +1,576 @@
+{
+  "name": "report-agent",
+  "version": "1.0.0",
+  "description": "Generates professional security reports in multiple formats (JSON, HTML, PDF, Markdown) with visualizations, compliance mappings, and executive summaries using Ollama for business-friendly language.",
+  "capabilities": [
+    "multi_format_export",
+    "visualization_generation",
+    "compliance_mapping",
+    "executive_summary",
+    "developer_report",
+    "ci_cd_integration"
+  ],
+  "dependencies": {
+    "external_tools": [
+      {
+        "name": "wkhtmltopdf",
+        "version": ">=0.12.6",
+        "required": false,
+        "description": "For PDF generation from HTML",
+        "install_command": "brew install wkhtmltopdf",
+        "alternative": "Use gofpdf library for native PDF generation"
+      }
+    ]
+  },
+  "supported_formats": [
+    "json",
+    "html",
+    "pdf",
+    "markdown",
+    "csv"
+  ],
+  "tools": [
+    {
+      "name": "generate_reports",
+      "description": "Generates comprehensive security reports in all supported formats",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "aggregated_report": {
+            "type": "object",
+            "description": "Consolidated report from aggregator agent"
+          },
+          "remediation_plans": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": "Remediation plans from remediation agent"
+          },
+          "project_profile": {
+            "type": "object",
+            "description": "Project profile from profiler agent"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context from contextualization agent"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "formats": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["json", "html", "pdf", "markdown", "csv"]
+                },
+                "description": "Formats to generate",
+                "default": ["json", "html", "pdf"]
+              },
+              "output_dir": {
+                "type": "string",
+                "description": "Directory to save reports",
+                "default": ".security-scan"
+              },
+              "include_executive_summary": {
+                "type": "boolean",
+                "description": "Generate executive summary using Ollama",
+                "default": true
+              },
+              "include_compliance_mapping": {
+                "type": "boolean",
+                "description": "Include OWASP/CWE/PCI-DSS mappings",
+                "default": true
+              },
+              "include_visualizations": {
+                "type": "boolean",
+                "description": "Include charts in HTML/PDF reports",
+                "default": true
+              },
+              "theme": {
+                "type": "string",
+                "enum": ["light", "dark", "auto"],
+                "description": "Report theme",
+                "default": "light"
+              }
+            }
+          }
+        },
+        "required": ["aggregated_report", "remediation_plans"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "reports": {
+            "type": "object",
+            "properties": {
+              "json": {
+                "type": "string",
+                "description": "Base64-encoded JSON report or file path"
+              },
+              "html": {
+                "type": "string",
+                "description": "Base64-encoded HTML report or file path"
+              },
+              "pdf": {
+                "type": "string",
+                "description": "Base64-encoded PDF report or file path"
+              },
+              "markdown": {
+                "type": "string",
+                "description": "Markdown report content or file path"
+              },
+              "csv": {
+                "type": "string",
+                "description": "CSV findings export or file path"
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "generated_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "pipeline_version": {
+                "type": "string"
+              },
+              "report_version": {
+                "type": "string"
+              },
+              "project_name": {
+                "type": "string"
+              },
+              "formats": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "file_paths": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+                "description": "Map of format to file path"
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total_findings": {"type": "integer"},
+              "risk_score": {"type": "number"},
+              "risk_level": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"]
+              },
+              "files_generated": {"type": "integer"}
+            }
+          }
+        },
+        "required": ["reports", "metadata", "summary"]
+      }
+    },
+    {
+      "name": "generate_json_report",
+      "description": "Generates structured JSON report for CI/CD integration",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "report_data": {
+            "type": "object",
+            "description": "Complete report data"
+          }
+        },
+        "required": ["report_data"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "string",
+            "description": "JSON report content"
+          }
+        },
+        "required": ["json"]
+      }
+    },
+    {
+      "name": "generate_html_report",
+      "description": "Generates interactive HTML report with visualizations",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "report_data": {
+            "type": "object"
+          },
+          "include_charts": {
+            "type": "boolean",
+            "default": true
+          },
+          "theme": {
+            "type": "string",
+            "enum": ["light", "dark"],
+            "default": "light"
+          }
+        },
+        "required": ["report_data"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "HTML report content"
+          }
+        },
+        "required": ["html"]
+      }
+    },
+    {
+      "name": "generate_pdf_report",
+      "description": "Generates professional PDF report",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "html_content": {
+            "type": "string",
+            "description": "HTML content to convert to PDF"
+          },
+          "method": {
+            "type": "string",
+            "enum": ["wkhtmltopdf", "native"],
+            "description": "PDF generation method",
+            "default": "wkhtmltopdf"
+          }
+        },
+        "required": ["html_content"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "pdf": {
+            "type": "string",
+            "description": "Base64-encoded PDF content"
+          }
+        },
+        "required": ["pdf"]
+      }
+    },
+    {
+      "name": "generate_markdown_report",
+      "description": "Generates Markdown report for documentation",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "report_data": {
+            "type": "object"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["standard", "github", "gitlab"],
+            "description": "Markdown flavor",
+            "default": "github"
+          }
+        },
+        "required": ["report_data"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "description": "Markdown report content"
+          }
+        },
+        "required": ["markdown"]
+      }
+    },
+    {
+      "name": "generate_executive_summary",
+      "description": "Generates business-friendly executive summary using Ollama",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "report_data": {
+            "type": "object"
+          },
+          "audience": {
+            "type": "string",
+            "enum": ["executive", "technical", "mixed"],
+            "default": "executive"
+          }
+        },
+        "required": ["report_data"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "Executive summary in plain English"
+          },
+          "key_points": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Bullet points of key findings"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "High-level recommendations"
+          }
+        },
+        "required": ["summary"]
+      }
+    },
+    {
+      "name": "generate_compliance_report",
+      "description": "Generates compliance mapping report (OWASP, CWE, PCI-DSS, ISO27001)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {"type": "object"}
+          },
+          "standards": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["owasp", "cwe", "pci-dss", "iso-27001", "nist"]
+            },
+            "default": ["owasp", "cwe", "pci-dss"]
+          }
+        },
+        "required": ["findings"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "compliance_mapping": {
+            "type": "object",
+            "properties": {
+              "owasp": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              },
+              "cwe": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              },
+              "pci_dss": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              },
+              "iso_27001": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              },
+              "compliance_score": {
+                "type": "number",
+                "description": "Overall compliance score (0-100)"
+              }
+            }
+          }
+        },
+        "required": ["compliance_mapping"]
+      }
+    },
+    {
+      "name": "export_csv",
+      "description": "Exports findings as CSV for spreadsheet analysis",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {"type": "object"}
+          },
+          "include_remediations": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": ["findings"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "CSV content"
+          }
+        },
+        "required": ["csv"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [
+      {
+        "name": "OLLAMA_URL",
+        "description": "URL of the Ollama service for executive summary generation",
+        "default": "http://localhost:11434"
+      }
+    ],
+    "optional_env_vars": [
+      {
+        "name": "OLLAMA_MODEL",
+        "description": "Ollama model to use for text generation",
+        "default": "codellama"
+      },
+      {
+        "name": "REPORT_OUTPUT_DIR",
+        "description": "Default directory for report output",
+        "default": ".security-scan"
+      },
+      {
+        "name": "REPORT_THEME",
+        "description": "Default theme for HTML/PDF reports",
+        "default": "light"
+      },
+      {
+        "name": "WKHTMLTOPDF_PATH",
+        "description": "Path to wkhtmltopdf binary",
+        "default": "/usr/local/bin/wkhtmltopdf"
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["aggregator-agent", "remediation-agent"],
+    "output_to": ["ci-cd-systems", "file-system"],
+    "dependencies": ["ollama", "wkhtmltopdf (optional)"]
+  },
+  "report_formats": {
+    "json": {
+      "description": "Structured JSON for CI/CD integration",
+      "use_case": "Automated processing, CI/CD gates, API consumption",
+      "features": [
+        "Complete structured data",
+        "Machine-readable",
+        "Easy to parse and integrate"
+      ]
+    },
+    "html": {
+      "description": "Interactive web report with visualizations",
+      "use_case": "Human review, team collaboration, presentations",
+      "features": [
+        "Interactive charts (Chart.js)",
+        "Filtering and sorting",
+        "Expandable details",
+        "Light/dark themes",
+        "Responsive design"
+      ]
+    },
+    "pdf": {
+      "description": "Professional printable report",
+      "use_case": "Executive presentations, compliance audits, archival",
+      "features": [
+        "Professional layout",
+        "Company branding ready",
+        "Print-optimized",
+        "Includes charts and tables"
+      ]
+    },
+    "markdown": {
+      "description": "Plain text report for documentation",
+      "use_case": "README files, wikis, version control",
+      "features": [
+        "GitHub/GitLab compatible",
+        "Easy to version control",
+        "Readable in plain text",
+        "Top findings highlighted"
+      ]
+    },
+    "csv": {
+      "description": "Findings export for spreadsheet analysis",
+      "use_case": "Data analysis, custom reporting, tracking",
+      "features": [
+        "Excel/Google Sheets compatible",
+        "Easy filtering and sorting",
+        "Custom analysis"
+      ]
+    }
+  },
+  "compliance_standards": {
+    "owasp_top_10": {
+      "description": "OWASP Top 10 Web Application Security Risks",
+      "version": "2021",
+      "categories": [
+        "A01:2021 - Broken Access Control",
+        "A02:2021 - Cryptographic Failures",
+        "A03:2021 - Injection",
+        "A04:2021 - Insecure Design",
+        "A05:2021 - Security Misconfiguration",
+        "A06:2021 - Vulnerable and Outdated Components",
+        "A07:2021 - Identification and Authentication Failures",
+        "A08:2021 - Software and Data Integrity Failures",
+        "A09:2021 - Security Logging and Monitoring Failures",
+        "A10:2021 - Server-Side Request Forgery"
+      ]
+    },
+    "cwe": {
+      "description": "Common Weakness Enumeration",
+      "url": "https://cwe.mitre.org/"
+    },
+    "pci_dss": {
+      "description": "Payment Card Industry Data Security Standard",
+      "version": "4.0",
+      "key_requirements": [
+        "6.5.1 - Injection flaws",
+        "4.1 - Encryption",
+        "7.1 - Access control",
+        "3.4 - Protect stored data"
+      ]
+    },
+    "iso_27001": {
+      "description": "Information Security Management",
+      "version": "2013"
+    }
+  },
+  "visualizations": {
+    "charts": [
+      "Severity distribution (pie chart)",
+      "Category breakdown (bar chart)",
+      "Trend analysis (line chart)",
+      "Risk score gauge",
+      "Top affected files (horizontal bar)",
+      "Compliance score radar"
+    ],
+    "library": "Chart.js v4.0+"
+  },
+  "performance": {
+    "typical_generation_time": "2-5s for all formats",
+    "memory_usage": "medium (PDF generation)",
+    "cpu_usage": "low-medium",
+    "io_usage": "medium (file writes)"
+  },
+  "notes": {
+    "ollama_usage": [
+      "Generates executive summaries in business language",
+      "Translates technical findings to business impact",
+      "Creates actionable recommendations for management",
+      "Avoids technical jargon in executive reports"
+    ],
+    "output_location": [
+      "All reports saved to .security-scan/ directory by default",
+      "Timestamped filenames prevent overwrites",
+      "File paths returned in metadata for reference"
+    ],
+    "ci_cd_integration": [
+      "JSON format designed for CI/CD consumption",
+      "Exit codes based on risk score thresholds",
+      "Machine-readable for automated gates",
+      "Supports GitLab CI, GitHub Actions, Jenkins"
+    ]
+  }
+}

@@ -1,0 +1,350 @@
+{
+  "name": "contextualization-agent",
+  "version": "1.0.0",
+  "description": "Intelligent router that analyzes project profile and determines which security agents to activate (SAST/SCA/Secrets) with optimized configurations based on project context, languages, and frameworks.",
+  "capabilities": [
+    "agent_activation_decision",
+    "dynamic_configuration",
+    "priority_ordering",
+    "context_analysis"
+  ],
+  "tools": [
+    {
+      "name": "contextualize_analysis",
+      "description": "Analyzes project profile and generates optimal configuration for downstream security agents",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_profile": {
+            "type": "object",
+            "description": "Complete project profile from profiler-agent",
+            "properties": {
+              "languages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "version": {"type": "string"},
+                    "file_count": {"type": "integer"},
+                    "percentage": {"type": "number"}
+                  }
+                }
+              },
+              "frameworks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "version": {"type": "string"},
+                    "language": {"type": "string"}
+                  }
+                }
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "version": {"type": "string"},
+                    "language": {"type": "string"},
+                    "is_dev_dep": {"type": "boolean"}
+                  }
+                }
+              },
+              "file_tree": {
+                "type": "object",
+                "properties": {
+                  "total_files": {"type": "integer"},
+                  "total_dirs": {"type": "integer"},
+                  "has_tests": {"type": "boolean"},
+                  "has_docs": {"type": "boolean"},
+                  "config_files": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  }
+                }
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "project_name": {"type": "string"},
+                  "size_bytes": {"type": "integer"},
+                  "is_git_repo": {"type": "boolean"}
+                }
+              }
+            },
+            "required": ["languages", "frameworks", "dependencies", "file_tree", "metadata"]
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "force_all_agents": {
+                "type": "boolean",
+                "description": "Force activation of all agents regardless of heuristics",
+                "default": false
+              },
+              "severity_threshold": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"],
+                "description": "Minimum severity level for findings",
+                "default": "medium"
+              },
+              "use_ollama_analysis": {
+                "type": "boolean",
+                "description": "Use Ollama for intelligent context analysis",
+                "default": true
+              }
+            }
+          }
+        },
+        "required": ["project_profile"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "enabled_agents": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["sast", "sca", "secrets"]
+            },
+            "description": "List of agents to activate"
+          },
+          "agent_configs": {
+            "type": "object",
+            "properties": {
+              "sast": {
+                "type": "object",
+                "properties": {
+                  "enabled": {"type": "boolean"},
+                  "severity": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high", "critical"]
+                  },
+                  "rules": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Specific vulnerability rules to check"
+                  },
+                  "skip_patterns": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "File patterns to exclude from scanning"
+                  },
+                  "max_findings": {
+                    "type": "integer",
+                    "description": "Maximum number of findings to report"
+                  },
+                  "custom_params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "sca": {
+                "type": "object",
+                "properties": {
+                  "enabled": {"type": "boolean"},
+                  "severity": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high", "critical"]
+                  },
+                  "rules": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  },
+                  "skip_patterns": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  },
+                  "max_findings": {"type": "integer"},
+                  "custom_params": {
+                    "type": "object",
+                    "properties": {
+                      "skip_dev_deps": {
+                        "type": "boolean",
+                        "description": "Skip development dependencies"
+                      },
+                      "check_direct_only": {
+                        "type": "boolean",
+                        "description": "Only check direct dependencies, not transitive"
+                      }
+                    }
+                  }
+                }
+              },
+              "secrets": {
+                "type": "object",
+                "properties": {
+                  "enabled": {"type": "boolean"},
+                  "severity": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high", "critical"]
+                  },
+                  "rules": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Types of secrets to detect (api-keys, tokens, private-keys, etc.)"
+                  },
+                  "skip_patterns": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  },
+                  "max_findings": {"type": "integer"},
+                  "custom_params": {
+                    "type": "object",
+                    "properties": {
+                      "entropy_threshold": {
+                        "type": "number",
+                        "description": "Minimum entropy for secret detection"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "priority": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["secrets", "sast", "sca"]
+            },
+            "description": "Suggested execution order for agents"
+          },
+          "skip_reasons": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Explanation for why certain agents were not activated"
+          },
+          "project_context": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Detected project type (api, cli, library, smart-contract, frontend, etc.)"
+              },
+              "domain": {
+                "type": "string",
+                "description": "Project domain (finance, healthcare, crypto, general, etc.)"
+              },
+              "criticality": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"],
+                "description": "Assessed criticality level"
+              },
+              "security_concerns": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Key security concerns based on project analysis"
+              }
+            }
+          }
+        },
+        "required": ["enabled_agents", "agent_configs", "priority", "skip_reasons"]
+      }
+    },
+    {
+      "name": "get_agent_config",
+      "description": "Retrieves configuration for a specific agent based on project profile",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "agent_name": {
+            "type": "string",
+            "enum": ["sast", "sca", "secrets"],
+            "description": "Name of the agent to configure"
+          },
+          "project_profile": {
+            "type": "object",
+            "description": "Project profile from profiler-agent"
+          }
+        },
+        "required": ["agent_name", "project_profile"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "agent_config": {
+            "type": "object",
+            "description": "Configuration specific to the requested agent"
+          }
+        },
+        "required": ["agent_config"]
+      }
+    },
+    {
+      "name": "analyze_project_context",
+      "description": "Uses Ollama to analyze project context and determine type, domain, and criticality",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_profile": {
+            "type": "object",
+            "description": "Project profile from profiler-agent"
+          }
+        },
+        "required": ["project_profile"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Project type (api, cli, library, smart-contract, frontend)"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Project domain (finance, healthcare, crypto, general)"
+          },
+          "criticality": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "security_concerns": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Identified security concerns"
+          }
+        },
+        "required": ["type", "domain", "criticality"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [
+      {
+        "name": "OLLAMA_URL",
+        "description": "URL of the Ollama service",
+        "default": "http://localhost:11434"
+      }
+    ],
+    "optional_env_vars": [
+      {
+        "name": "OLLAMA_MODEL",
+        "description": "Ollama model to use for analysis",
+        "default": "gpt-oss-20b"
+      },
+      {
+        "name": "CONTEXT_CACHE_ENABLED",
+        "description": "Enable caching of context analysis results",
+        "default": "true"
+      },
+      {
+        "name": "DEFAULT_SEVERITY_THRESHOLD",
+        "description": "Default minimum severity level",
+        "default": "medium"
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["profiler-agent"],
+    "output_to": ["sast-agent", "sca-agent", "secrets-agent"],
+    "dependencies": ["ollama"]
+  }
+}

@@ -1,0 +1,402 @@
+{
+  "name": "sca-agent",
+  "version": "1.0.0",
+  "description": "Software Composition Analysis agent that scans project dependencies for known vulnerabilities using Trivy, enriched with AI-powered exploitability assessment via Ollama.",
+  "capabilities": [
+    "dependency_vulnerability_scanning",
+    "cve_detection",
+    "exploitability_assessment",
+    "fix_recommendation"
+  ],
+  "dependencies": {
+    "external_tools": [
+      {
+        "name": "trivy",
+        "version": ">=0.48.0",
+        "required": true,
+        "install_command": "brew install trivy",
+        "check_command": "trivy --version"
+      }
+    ]
+  },
+  "tools": [
+    {
+      "name": "scan_dependencies",
+      "description": "Scans project dependencies for known CVEs using Trivy and enriches findings with exploitability analysis",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_path": {
+            "type": "string",
+            "description": "Absolute path to the project directory"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "severity": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"],
+                "description": "Minimum severity threshold for findings",
+                "default": "medium"
+              },
+              "skip_dev_deps": {
+                "type": "boolean",
+                "description": "Skip development dependencies",
+                "default": false
+              },
+              "check_direct_only": {
+                "type": "boolean",
+                "description": "Only check direct dependencies, not transitive",
+                "default": false
+              },
+              "max_findings": {
+                "type": "integer",
+                "description": "Maximum number of findings to report",
+                "default": 100
+              },
+              "assess_exploitability": {
+                "type": "boolean",
+                "description": "Use Ollama to assess exploitability in project context",
+                "default": true
+              },
+              "timeout_seconds": {
+                "type": "integer",
+                "description": "Timeout for Trivy scan in seconds",
+                "default": 300
+              }
+            }
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context from contextualization-agent",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Project type (api, cli, library, smart-contract)"
+              },
+              "domain": {
+                "type": "string",
+                "description": "Project domain (finance, crypto, healthcare, general)"
+              },
+              "frameworks": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "is_production": {
+                "type": "boolean"
+              },
+              "has_tests": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": ["project_path", "config"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique finding identifier"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["vulnerable-dependency"]
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"]
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Vulnerability title"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Detailed vulnerability description"
+                },
+                "package_name": {
+                  "type": "string",
+                  "description": "Name of vulnerable package"
+                },
+                "installed_version": {
+                  "type": "string",
+                  "description": "Currently installed version"
+                },
+                "fixed_version": {
+                  "type": "string",
+                  "description": "Version that fixes the vulnerability"
+                },
+                "package_type": {
+                  "type": "string",
+                  "description": "Package manager type (gomod, npm, pip, maven, etc.)"
+                },
+                "cve": {
+                  "type": "string",
+                  "description": "CVE identifier"
+                },
+                "cvss": {
+                  "type": "number",
+                  "description": "CVSS score (0-10)"
+                },
+                "cwe": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "CWE identifiers"
+                },
+                "exploitability": {
+                  "type": "string",
+                  "description": "Ollama analysis of exploitability in project context"
+                },
+                "risk_level": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "critical"],
+                  "description": "Actual risk level after exploitability assessment"
+                },
+                "recommendation": {
+                  "type": "string",
+                  "description": "Detailed fix recommendation with commands and steps"
+                },
+                "references": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "URLs to advisories and documentation"
+                },
+                "published_date": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": ["trivy"]
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "severity",
+                "package_name",
+                "installed_version",
+                "cve",
+                "cvss"
+              ]
+            }
+          },
+          "scan_summary": {
+            "type": "object",
+            "properties": {
+              "dependencies_checked": {
+                "type": "integer",
+                "description": "Total dependencies analyzed"
+              },
+              "vulnerable_deps": {
+                "type": "integer",
+                "description": "Number of dependencies with vulnerabilities"
+              },
+              "findings_by_severity": {
+                "type": "object",
+                "properties": {
+                  "critical": {"type": "integer"},
+                  "high": {"type": "integer"},
+                  "medium": {"type": "integer"},
+                  "low": {"type": "integer"}
+                }
+              },
+              "findings_by_package_type": {
+                "type": "object",
+                "additionalProperties": {"type": "integer"}
+              },
+              "duration_ms": {
+                "type": "integer",
+                "description": "Scan duration in milliseconds"
+              },
+              "trivy_version": {
+                "type": "string"
+              }
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Non-blocking errors during scan"
+          }
+        },
+        "required": ["findings", "scan_summary"]
+      }
+    },
+    {
+      "name": "assess_exploitability",
+      "description": "Uses Ollama to assess if a CVE is exploitable in the specific project context",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Vulnerability finding to assess"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context information"
+          }
+        },
+        "required": ["finding", "project_context"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "exploitable": {
+            "type": "boolean",
+            "description": "Whether the vulnerability is exploitable"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Detailed explanation"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "attack_scenario": {
+            "type": "string",
+            "description": "Potential attack scenario if exploitable"
+          }
+        },
+        "required": ["exploitable", "confidence", "reasoning", "risk_level"]
+      }
+    },
+    {
+      "name": "generate_fix_recommendation",
+      "description": "Generates detailed fix recommendation for a vulnerability",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Vulnerability finding"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context"
+          }
+        },
+        "required": ["finding", "project_context"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "recommendation": {
+            "type": "string",
+            "description": "Markdown-formatted fix recommendation with commands, steps, and alternatives"
+          }
+        },
+        "required": ["recommendation"]
+      }
+    },
+    {
+      "name": "update_trivy_db",
+      "description": "Updates Trivy's vulnerability database",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "db_version": {
+            "type": "string"
+          }
+        },
+        "required": ["success"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [
+      {
+        "name": "OLLAMA_URL",
+        "description": "URL of the Ollama service for exploitability assessment",
+        "default": "http://localhost:11434"
+      }
+    ],
+    "optional_env_vars": [
+      {
+        "name": "OLLAMA_MODEL",
+        "description": "Ollama model to use for analysis",
+        "default": "codellama"
+      },
+      {
+        "name": "TRIVY_CACHE_DIR",
+        "description": "Directory for Trivy cache",
+        "default": "$HOME/.cache/trivy"
+      },
+      {
+        "name": "SCA_AUTO_UPDATE_DB",
+        "description": "Automatically update Trivy DB before scan",
+        "default": "true"
+      },
+      {
+        "name": "SCA_TIMEOUT",
+        "description": "Default timeout for scans in seconds",
+        "default": "300"
+      },
+      {
+        "name": "SCA_PARALLEL_ANALYSIS",
+        "description": "Number of findings to analyze in parallel with Ollama",
+        "default": "3"
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["contextualization-agent"],
+    "output_to": ["aggregator-agent"],
+    "dependencies": ["trivy", "ollama"]
+  },
+  "performance": {
+    "typical_scan_time": "2-10s per project",
+    "memory_usage": "low (trivy handles heavy lifting)",
+    "cpu_usage": "low (except during Ollama analysis)",
+    "io_usage": "medium (reading dependency files)"
+  },
+  "notes": {
+    "trivy_advantages": [
+      "No API rate limits (local database)",
+      "Multi-source CVE data (NVD, GitHub Advisory, Alpine, etc.)",
+      "15+ package managers supported",
+      "Fast and reliable (used by millions)",
+      "Free and open source"
+    ],
+    "supported_ecosystems": [
+      "Go (gomod)",
+      "JavaScript/TypeScript (npm, yarn, pnpm)",
+      "Python (pip, poetry, pipenv)",
+      "Java (maven, gradle)",
+      "Rust (cargo)",
+      "Ruby (bundler)",
+      "PHP (composer)",
+      ".NET (nuget)",
+      "C/C++ (conan)",
+      "Solidity (npm-based)"
+    ]
+  }
+}

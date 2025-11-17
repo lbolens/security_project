@@ -1,0 +1,582 @@
+{
+  "name": "remediation-agent",
+  "version": "1.0.0",
+  "description": "Generates actionable remediation plans for security findings using Ollama to create code fixes, specific commands, step-by-step action plans, and testing strategies.",
+  "capabilities": [
+    "code_fix_generation",
+    "command_generation",
+    "action_plan_creation",
+    "complexity_estimation",
+    "alternative_solutions",
+    "test_generation"
+  ],
+  "tools": [
+    {
+      "name": "generate_remediation_plans",
+      "description": "Generates comprehensive remediation plans for all findings from the aggregated report",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "aggregated_report": {
+            "type": "object",
+            "description": "Consolidated report from aggregator agent"
+          },
+          "project_profile": {
+            "type": "object",
+            "description": "Project profile from profiler agent"
+          },
+          "project_context": {
+            "type": "object",
+            "description": "Project context from contextualization agent"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "generate_alternatives": {
+                "type": "boolean",
+                "description": "Generate alternative fix approaches",
+                "default": true
+              },
+              "max_alternatives": {
+                "type": "integer",
+                "description": "Maximum number of alternative fixes per finding",
+                "default": 2
+              },
+              "include_tests": {
+                "type": "boolean",
+                "description": "Generate test steps for validation",
+                "default": true
+              },
+              "detailed_steps": {
+                "type": "boolean",
+                "description": "Generate detailed step-by-step action plans",
+                "default": true
+              },
+              "estimate_complexity": {
+                "type": "boolean",
+                "description": "Estimate fix complexity and time",
+                "default": true
+              }
+            }
+          }
+        },
+        "required": ["aggregated_report"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "remediation_plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "finding_id": {
+                  "type": "string",
+                  "description": "ID of the finding being remediated"
+                },
+                "primary_fix": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["code-patch", "dependency-update", "configuration", "removal"],
+                      "description": "Type of fix"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Human-readable fix description"
+                    },
+                    "code_before": {
+                      "type": "string",
+                      "description": "Current vulnerable code"
+                    },
+                    "code_after": {
+                      "type": "string",
+                      "description": "Fixed code (production-ready)"
+                    },
+                    "file_path": {
+                      "type": "string"
+                    },
+                    "line_number": {
+                      "type": "integer"
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command to execute (for dependency updates)"
+                    },
+                    "package_name": {
+                      "type": "string"
+                    },
+                    "current_version": {
+                      "type": "string"
+                    },
+                    "target_version": {
+                      "type": "string"
+                    },
+                    "impact": {
+                      "type": "string",
+                      "description": "Impact of applying this fix"
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "description": "Why this fix works"
+                    },
+                    "breaking_change": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["type", "description"]
+                },
+                "alternative_fixes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "Alternative approaches to fix the same issue"
+                  }
+                },
+                "complexity": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"],
+                  "description": "Estimated fix complexity"
+                },
+                "estimated_time": {
+                  "type": "string",
+                  "description": "Estimated time to implement (e.g., '10 minutes', '2 hours')"
+                },
+                "requires_expertise": {
+                  "type": "string",
+                  "enum": ["junior", "mid", "senior"],
+                  "description": "Required developer expertise level"
+                },
+                "breaking_change": {
+                  "type": "boolean",
+                  "description": "Whether fix introduces breaking changes"
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "order": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "command": {
+                        "type": "string",
+                        "description": "Command to execute (if applicable)"
+                      },
+                      "expected_output": {
+                        "type": "string"
+                      },
+                      "validation_method": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["order", "title", "description"]
+                  },
+                  "description": "Step-by-step remediation instructions"
+                },
+                "prerequisites": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Prerequisites before starting remediation"
+                },
+                "testing": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["unit", "integration", "manual", "regression"]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "expected_result": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "description": "Test steps to validate the fix"
+                },
+                "references": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Reference URLs (OWASP, documentation, etc.)"
+                },
+                "documentation": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Additional documentation links"
+                },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": ["low", "medium", "high"],
+                      "description": "Confidence in the proposed fix"
+                    },
+                    "auto_applicable": {
+                      "type": "boolean",
+                      "description": "Whether fix can be auto-applied safely"
+                    },
+                    "risk_level": {
+                      "type": "string",
+                      "enum": ["low", "medium", "high"],
+                      "description": "Risk of applying this fix"
+                    }
+                  }
+                }
+              },
+              "required": ["finding_id", "primary_fix", "complexity", "estimated_time"]
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total_plans": {
+                "type": "integer"
+              },
+              "by_complexity": {
+                "type": "object",
+                "properties": {
+                  "low": {"type": "integer"},
+                  "medium": {"type": "integer"},
+                  "high": {"type": "integer"}
+                }
+              },
+              "by_type": {
+                "type": "object",
+                "properties": {
+                  "code_patch": {"type": "integer"},
+                  "dependency_update": {"type": "integer"},
+                  "configuration": {"type": "integer"},
+                  "removal": {"type": "integer"}
+                }
+              },
+              "estimated_total_time": {
+                "type": "string",
+                "description": "Total estimated time for all remediations"
+              },
+              "auto_applicable_count": {
+                "type": "integer",
+                "description": "Number of fixes that can be auto-applied"
+              }
+            }
+          }
+        },
+        "required": ["remediation_plans", "summary"]
+      }
+    },
+    {
+      "name": "generate_code_fix",
+      "description": "Generates a specific code patch for a vulnerability",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Finding to fix"
+          },
+          "project_context": {
+            "type": "object"
+          }
+        },
+        "required": ["finding"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "fix": {
+            "type": "object",
+            "description": "Generated code fix"
+          }
+        },
+        "required": ["fix"]
+      }
+    },
+    {
+      "name": "generate_dependency_fix",
+      "description": "Generates commands to update vulnerable dependencies",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object",
+            "description": "Dependency vulnerability finding"
+          }
+        },
+        "required": ["finding"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "fix": {
+            "type": "object",
+            "properties": {
+              "update_command": {
+                "type": "string",
+                "description": "Command to update dependency"
+              },
+              "verify_command": {
+                "type": "string",
+                "description": "Command to verify update"
+              },
+              "rollback_command": {
+                "type": "string",
+                "description": "Command to rollback if needed"
+              }
+            }
+          }
+        },
+        "required": ["fix"]
+      }
+    },
+    {
+      "name": "generate_action_plan",
+      "description": "Generates step-by-step action plan for remediation",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object"
+          },
+          "fix": {
+            "type": "object"
+          }
+        },
+        "required": ["finding", "fix"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "estimated_time": {
+            "type": "string"
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["steps"]
+      }
+    },
+    {
+      "name": "estimate_complexity",
+      "description": "Estimates fix complexity, time, and required expertise",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object"
+          },
+          "fix": {
+            "type": "object"
+          }
+        },
+        "required": ["finding", "fix"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "complexity": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "estimated_time": {
+            "type": "string"
+          },
+          "requires_expertise": {
+            "type": "string",
+            "enum": ["junior", "mid", "senior"]
+          },
+          "factors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Factors contributing to complexity"
+          }
+        },
+        "required": ["complexity", "estimated_time", "requires_expertise"]
+      }
+    },
+    {
+      "name": "generate_tests",
+      "description": "Generates test steps to validate the fix",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "object"
+          },
+          "fix": {
+            "type": "object"
+          }
+        },
+        "required": ["finding", "fix"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "string"
+                },
+                "expected_result": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": ["tests"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [
+      {
+        "name": "OLLAMA_URL",
+        "description": "URL of the Ollama service for fix generation",
+        "default": "http://localhost:11434"
+      }
+    ],
+    "optional_env_vars": [
+      {
+        "name": "OLLAMA_MODEL",
+        "description": "Ollama model to use for remediation generation",
+        "default": "codellama"
+      },
+      {
+        "name": "REMEDIATION_MAX_ALTERNATIVES",
+        "description": "Maximum alternative fixes to generate",
+        "default": "2"
+      },
+      {
+        "name": "REMEDIATION_GENERATE_TESTS",
+        "description": "Enable test generation",
+        "default": "true"
+      },
+      {
+        "name": "REMEDIATION_DETAILED_STEPS",
+        "description": "Generate detailed step-by-step plans",
+        "default": "true"
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["aggregator-agent"],
+    "output_to": ["report-agent"],
+    "dependencies": ["ollama"]
+  },
+  "fix_types": {
+    "code_patch": {
+      "description": "Direct code changes to fix vulnerability",
+      "generates": ["code_before", "code_after", "explanation"],
+      "auto_applicable": "sometimes",
+      "typical_complexity": "low-medium"
+    },
+    "dependency_update": {
+      "description": "Update vulnerable dependencies",
+      "generates": ["update_command", "verify_command", "rollback_command"],
+      "auto_applicable": "often",
+      "typical_complexity": "low"
+    },
+    "configuration": {
+      "description": "Configuration changes to mitigate vulnerability",
+      "generates": ["config_changes", "restart_commands"],
+      "auto_applicable": "sometimes",
+      "typical_complexity": "low"
+    },
+    "removal": {
+      "description": "Remove vulnerable code/dependency",
+      "generates": ["removal_commands", "alternative_suggestions"],
+      "auto_applicable": "rarely",
+      "typical_complexity": "medium-high"
+    }
+  },
+  "complexity_estimation": {
+    "factors": [
+      "Fix type (dependency < config < code < removal)",
+      "Severity (critical requires more testing)",
+      "Breaking changes (yes = higher complexity)",
+      "Component location (core > peripheral)",
+      "Lines of code affected",
+      "Required expertise level"
+    ],
+    "time_estimates": {
+      "low": "5-30 minutes",
+      "medium": "30 minutes - 2 hours",
+      "high": "2-8 hours"
+    }
+  },
+  "performance": {
+    "typical_generation_time": "5-15s per finding (with Ollama)",
+    "memory_usage": "low-medium",
+    "cpu_usage": "low (Ollama does heavy lifting)",
+    "io_usage": "minimal"
+  },
+  "notes": {
+    "ollama_role": [
+      "Generates production-ready code fixes",
+      "Creates specific commands for each package manager",
+      "Generates detailed step-by-step instructions",
+      "Provides multiple alternative approaches",
+      "Explains rationale behind each fix",
+      "Generates validation tests"
+    ],
+    "code_quality": [
+      "All generated code is compilable and working",
+      "Follows language best practices",
+      "Includes proper error handling",
+      "Maintains existing functionality",
+      "Production-ready, not placeholders"
+    ],
+    "actionability": [
+      "Every step has clear validation method",
+      "Commands are copy-pastable",
+      "Expected outputs are specified",
+      "Prerequisites are listed",
+      "Rollback strategies included"
+    ]
+  }
+}

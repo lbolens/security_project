@@ -1,0 +1,289 @@
+{
+  "name": "profiler-agent",
+  "version": "1.0.0",
+  "description": "Scans a project to extract its complete profile: languages, frameworks, dependencies, and file structure. Foundation for all downstream security agents.",
+  "capabilities": [
+    "language_detection",
+    "framework_identification",
+    "dependency_extraction",
+    "file_tree_analysis"
+  ],
+  "tools": [
+    {
+      "name": "analyze_project",
+      "description": "Analyzes a project directory and returns its complete profile including languages, frameworks, dependencies, and structure",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_path": {
+            "type": "string",
+            "description": "Absolute path to the project directory to analyze"
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "exclude_patterns": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Additional patterns to exclude from scanning (beyond defaults)",
+                "default": []
+              },
+              "max_depth": {
+                "type": "integer",
+                "description": "Maximum directory depth to scan (0 = unlimited)",
+                "default": 0
+              },
+              "include_dev_deps": {
+                "type": "boolean",
+                "description": "Whether to include development dependencies",
+                "default": true
+              }
+            }
+          }
+        },
+        "required": ["project_path"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Language name (e.g., 'Go', 'Python', 'JavaScript')"
+                },
+                "version": {
+                  "type": "string",
+                  "description": "Detected version if available"
+                },
+                "file_count": {
+                  "type": "integer",
+                  "description": "Number of files in this language"
+                },
+                "percentage": {
+                  "type": "number",
+                  "description": "Percentage of project in this language"
+                }
+              },
+              "required": ["name", "file_count", "percentage"]
+            }
+          },
+          "frameworks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Framework name (e.g., 'Gin', 'React', 'Django')"
+                },
+                "version": {
+                  "type": "string",
+                  "description": "Framework version from package manager"
+                },
+                "language": {
+                  "type": "string",
+                  "description": "Associated programming language"
+                }
+              },
+              "required": ["name", "language"]
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Package/module name"
+                },
+                "version": {
+                  "type": "string",
+                  "description": "Version or version constraint"
+                },
+                "language": {
+                  "type": "string",
+                  "description": "Programming language"
+                },
+                "is_dev_dep": {
+                  "type": "boolean",
+                  "description": "Whether this is a development dependency"
+                },
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to the file declaring this dependency"
+                }
+              },
+              "required": ["name", "version", "language", "is_dev_dep"]
+            }
+          },
+          "file_tree": {
+            "type": "object",
+            "properties": {
+              "total_files": {
+                "type": "integer",
+                "description": "Total number of files scanned"
+              },
+              "total_dirs": {
+                "type": "integer",
+                "description": "Total number of directories"
+              },
+              "max_depth": {
+                "type": "integer",
+                "description": "Maximum directory depth encountered"
+              },
+              "has_tests": {
+                "type": "boolean",
+                "description": "Whether test files were detected"
+              },
+              "has_docs": {
+                "type": "boolean",
+                "description": "Whether documentation files were detected"
+              },
+              "config_files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of configuration file paths found"
+              }
+            },
+            "required": ["total_files", "total_dirs", "has_tests", "has_docs"]
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "project_name": {
+                "type": "string",
+                "description": "Name of the project (root directory name)"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "description": "Total size of the project in bytes"
+              },
+              "is_git_repo": {
+                "type": "boolean",
+                "description": "Whether the project is a git repository"
+              },
+              "scan_duration_ms": {
+                "type": "integer",
+                "description": "Time taken to complete the scan in milliseconds"
+              }
+            },
+            "required": ["project_name", "size_bytes", "is_git_repo"]
+          }
+        },
+        "required": ["languages", "frameworks", "dependencies", "file_tree", "metadata"]
+      }
+    },
+    {
+      "name": "detect_languages",
+      "description": "Detects programming languages used in a project without full analysis",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_path": {
+            "type": "string",
+            "description": "Absolute path to the project directory"
+          }
+        },
+        "required": ["project_path"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "file_count": {
+                  "type": "integer"
+                },
+                "percentage": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "required": ["languages"]
+      }
+    },
+    {
+      "name": "extract_dependencies",
+      "description": "Extracts dependencies for a specific language in the project",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "project_path": {
+            "type": "string",
+            "description": "Absolute path to the project directory"
+          },
+          "language": {
+            "type": "string",
+            "enum": ["Go", "Python", "JavaScript", "TypeScript", "Java", "Rust", "Ruby", "PHP"],
+            "description": "Target language to extract dependencies for"
+          }
+        },
+        "required": ["project_path", "language"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "is_dev_dep": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "source_file": {
+            "type": "string",
+            "description": "Path to the dependency file parsed"
+          }
+        },
+        "required": ["dependencies"]
+      }
+    }
+  ],
+  "configuration": {
+    "required_env_vars": [],
+    "optional_env_vars": [
+      {
+        "name": "PROFILER_CACHE_ENABLED",
+        "description": "Enable caching of analysis results",
+        "default": "true"
+      },
+      {
+        "name": "PROFILER_MAX_FILE_SIZE",
+        "description": "Maximum file size to analyze in bytes",
+        "default": "10485760"
+      }
+    ]
+  },
+  "integration": {
+    "input_from": ["mcp-server"],
+    "output_to": ["contextualization-agent"],
+    "dependencies": []
+  }
+}
