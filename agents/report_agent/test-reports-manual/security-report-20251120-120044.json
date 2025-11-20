@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "generated_at": "2025-11-20T12:00:44.674662+01:00",
+    "pipeline_version": "1.0.0",
+    "report_version": "1.0",
+    "project_name": "Example Web Application",
+    "formats": null,
+    "file_paths": null
+  },
+  "summary": {
+    "total_findings": 5,
+    "critical_findings": 2,
+    "high_findings": 2,
+    "medium_findings": 1,
+    "low_findings": 0,
+    "risk_score": 92.3
+  },
+  "risk_score": {
+    "overall": 92.3,
+    "level": "high",
+    "breakdown": {
+      "code_vulnerabilities": 0,
+      "vulnerable_dependencies": 0,
+      "exposed_secrets": 0
+    },
+    "trend": ""
+  },
+  "findings": [
+    {
+      "id": "FIND-001",
+      "title": "SQL Injection Vulnerability",
+      "severity": "CRITICAL",
+      "category": "SAST",
+      "file_path": "src/database/queries.go",
+      "line_number": 45,
+      "priority": 1,
+      "description": "User input is directly concatenated into SQL query without sanitization.",
+      "owasp": [
+        "A03:2021-Injection"
+      ],
+      "cwe": [
+        "CWE-89"
+      ]
+    },
+    {
+      "id": "FIND-002",
+      "title": "Hardcoded API Key",
+      "severity": "CRITICAL",
+      "category": "Secrets",
+      "file_path": "config/api.go",
+      "line_number": 12,
+      "priority": 1,
+      "description": "API key hardcoded in source code.",
+      "owasp": [
+        "A07:2021-Identification and Authentication Failures"
+      ],
+      "cwe": [
+        "CWE-798"
+      ]
+    }
+  ],
+  "remediations": null,
+  "statistics": {
+    "by_category": {
+      "SAST": 2,
+      "SCA": 2,
+      "Secrets": 1
+    },
+    "most_affected_files": null
+  },
+  "compliance": {
+    "owasp": null,
+    "cwe": null,
+    "pci_dss": null,
+    "iso_27001": null,
+    "compliance_score": 85
+  }
+}

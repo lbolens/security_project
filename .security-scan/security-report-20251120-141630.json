@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "generated_at": "2025-11-20T14:16:30.630189+01:00",
+    "pipeline_version": "1.0.0",
+    "report_version": "1.0",
+    "project_name": "vulnerable-app",
+    "formats": null,
+    "file_paths": null
+  },
+  "summary": {
+    "total_findings": 0,
+    "critical_findings": 0,
+    "high_findings": 0,
+    "medium_findings": 0,
+    "low_findings": 0,
+    "risk_score": 0
+  },
+  "risk_score": {
+    "overall": 0,
+    "level": "high",
+    "breakdown": {
+      "code_vulnerabilities": 0,
+      "vulnerable_dependencies": 0,
+      "exposed_secrets": 0
+    },
+    "trend": ""
+  },
+  "findings": null,
+  "remediations": null,
+  "statistics": {
+    "by_category": {},
+    "most_affected_files": null
+  },
+  "compliance": {
+    "owasp": null,
+    "cwe": null,
+    "pci_dss": null,
+    "iso_27001": null,
+    "compliance_score": 85
+  }
+}

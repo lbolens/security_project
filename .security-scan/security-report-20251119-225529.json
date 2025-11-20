@@ -1,0 +1,74 @@
+{
+  "metadata": {
+    "GeneratedAt": "2025-11-19T22:55:29.686352+01:00",
+    "PipelineVersion": "1.0.0",
+    "ReportVersion": "1.0",
+    "ProjectName": "Test Project",
+    "Formats": null,
+    "FilePaths": null
+  },
+  "summary": {
+    "TotalFindings": 2,
+    "CriticalFindings": 1,
+    "HighFindings": 1,
+    "MediumFindings": 0,
+    "LowFindings": 0,
+    "RiskScore": 85.5
+  },
+  "risk_score": {
+    "overall": 85.5,
+    "level": "high",
+    "breakdown": {
+      "code_vulnerabilities": 0,
+      "vulnerable_dependencies": 0,
+      "exposed_secrets": 0
+    },
+    "trend": ""
+  },
+  "findings": [
+    {
+      "ID": "FIND-001",
+      "Title": "SQL Injection",
+      "Severity": "Critical",
+      "Category": "Injection",
+      "FilePath": "main.go",
+      "LineNumber": 42,
+      "Priority": 0,
+      "Description": "Potential SQL injection in query construction.",
+      "OWASP": null,
+      "CWE": null
+    },
+    {
+      "ID": "FIND-002",
+      "Title": "Hardcoded Secret",
+      "Severity": "High",
+      "Category": "Secrets",
+      "FilePath": "config.yaml",
+      "LineNumber": 10,
+      "Priority": 0,
+      "Description": "AWS Key found in configuration file.",
+      "OWASP": null,
+      "CWE": null
+    }
+  ],
+  "remediations": [
+    {
+      "FindingID": "FIND-001",
+      "PrimaryFix": {
+        "Command": "",
+        "CodeAfter": "Use parameterized queries."
+      }
+    }
+  ],
+  "statistics": {
+    "ByCategory": null,
+    "MostAffectedFiles": null
+  },
+  "compliance": {
+    "owasp": null,
+    "cwe": null,
+    "pci_dss": null,
+    "iso_27001": null,
+    "compliance_score": 85
+  }
+}

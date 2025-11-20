@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Security Scan Report - {{.ProjectName}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .summary {
+            margin-bottom: 30px;
+        }
+
+        .risk-score {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .finding {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .critical {
+            border-left: 5px solid #dc3545;
+        }
+
+        .high {
+            border-left: 5px solid #fd7e14;
+        }
+
+        .medium {
+            border-left: 5px solid #ffc107;
+        }
+
+        .low {
+            border-left: 5px solid #28a745;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Security Scan Report</h1>
+    <div class="summary">
+        <p><strong>Project:</strong> {{.ProjectName}}</p>
+        <p><strong>Date:</strong> {{.ScanDate}}</p>
+        <p class="risk-score">Risk Score: {{printf "%.1f" .RiskScore}} / 100</p>
+    </div>
+
+    <h2>Findings</h2>
+    {{range .Findings}}
+    <div class="finding {{.Severity}}">
+        <h3>{{.Title}}</h3>
+        <p><strong>Severity:</strong> {{.Severity}}</p>
+        <p><strong>Location:</strong> {{.FilePath}}:{{.LineNumber}}</p>
+        <p>{{.Description}}</p>
+    </div>
+    {{end}}
+</body>
+
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Security Scan Report - Test Project</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        .summary { margin-bottom: 30px; }
+        .risk-score { font-size: 24px; font-weight: bold; }
+        .finding { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+        .critical { border-left: 5px solid #dc3545; }
+        .high { border-left: 5px solid #fd7e14; }
+        .medium { border-left: 5px solid #ffc107; }
+        .low { border-left: 5px solid #28a745; }
+    </style>
+</head>
+<body>
+    <h1>Security Scan Report</h1>
+    <div class="summary">
+        <p><strong>Project:</strong> Test Project</p>
+        <p><strong>Date:</strong> 2025-11-19 22:55:29</p>
+        <p class="risk-score">Risk Score: 85.5 / 100</p>
+    </div>
+
+    <h2>Findings</h2>
+    
+    <div class="finding Critical">
+        <h3>SQL Injection</h3>
+        <p><strong>Severity:</strong> Critical</p>
+        <p><strong>Location:</strong> main.go:42</p>
+        <p>Potential SQL injection in query construction.</p>
+    </div>
+    
+    <div class="finding High">
+        <h3>Hardcoded Secret</h3>
+        <p><strong>Severity:</strong> High</p>
+        <p><strong>Location:</strong> config.yaml:10</p>
+        <p>AWS Key found in configuration file.</p>
+    </div>
+    
+</body>
+</html>

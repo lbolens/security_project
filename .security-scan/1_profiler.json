@@ -1,0 +1,47 @@
+{
+  "languages": [
+    {
+      "name": "Go",
+      "file_count": 1,
+      "percentage": 100
+    }
+  ],
+  "frameworks": [
+    {
+      "name": "Gin",
+      "version": "github.com/gin-gonic/gin",
+      "language": "Go"
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "github.com/lib/pq",
+      "version": "v1.10.9",
+      "language": "Go",
+      "is_dev_dep": false,
+      "file_path": "/Users/lucasbolens/Desktop/security_project/test-projects/vulnerable-app/go.mod"
+    },
+    {
+      "name": "github.com/gin-gonic/gin",
+      "version": "v1.9.0",
+      "language": "Go",
+      "is_dev_dep": false,
+      "file_path": "/Users/lucasbolens/Desktop/security_project/test-projects/vulnerable-app/go.mod"
+    }
+  ],
+  "file_tree": {
+    "total_files": 6,
+    "total_dirs": 1,
+    "max_depth": 0,
+    "has_tests": false,
+    "has_docs": true,
+    "config_files": [
+      ".env"
+    ]
+  },
+  "metadata": {
+    "project_name": "vulnerable-app",
+    "size_bytes": 3153,
+    "is_git_repo": false
+  }
+}

@@ -1,0 +1,6 @@
+# Python dependencies with known vulnerabilities
+flask==1.1.1
+requests==2.25.0
+Django==2.2.10
+Pillow==7.0.0
+cryptography==2.8

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Security Scan Report - Example Web Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .summary {
+            margin-bottom: 30px;
+        }
+
+        .risk-score {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .finding {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .critical {
+            border-left: 5px solid #dc3545;
+        }
+
+        .high {
+            border-left: 5px solid #fd7e14;
+        }
+
+        .medium {
+            border-left: 5px solid #ffc107;
+        }
+
+        .low {
+            border-left: 5px solid #28a745;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Security Scan Report</h1>
+    <div class="summary">
+        <p><strong>Project:</strong> Example Web Application</p>
+        <p><strong>Date:</strong> 2025-11-20 12:00:44</p>
+        <p class="risk-score">Risk Score: 92.3 / 100</p>
+    </div>
+
+    <h2>Findings</h2>
+    
+    <div class="finding CRITICAL">
+        <h3>SQL Injection Vulnerability</h3>
+        <p><strong>Severity:</strong> CRITICAL</p>
+        <p><strong>Location:</strong> src/database/queries.go:45</p>
+        <p>User input is directly concatenated into SQL query without sanitization.</p>
+    </div>
+    
+    <div class="finding CRITICAL">
+        <h3>Hardcoded API Key</h3>
+        <p><strong>Severity:</strong> CRITICAL</p>
+        <p><strong>Location:</strong> config/api.go:12</p>
+        <p>API key hardcoded in source code.</p>
+    </div>
+    
+</body>
+
+</html>

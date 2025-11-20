@@ -1,0 +1,27 @@
+{
+  "reports": {
+    "json": "/Users/lucasbolens/Desktop/security_project/.security-scan/security-report-20251120-141630.json",
+    "markdown": "/Users/lucasbolens/Desktop/security_project/.security-scan/security-report-20251120-141630.markdown"
+  },
+  "metadata": {
+    "generated_at": "2025-11-20T14:16:30.630485+01:00",
+    "pipeline_version": "1.0.0",
+    "report_version": "1.0",
+    "project_name": "vulnerable-app",
+    "formats": [
+      "json",
+      "markdown"
+    ],
+    "file_paths": {
+      "json": "/Users/lucasbolens/Desktop/security_project/.security-scan/security-report-20251120-141630.json",
+      "markdown": "/Users/lucasbolens/Desktop/security_project/.security-scan/security-report-20251120-141630.markdown"
+    }
+  },
+  "summary": {
+    "total_findings": 0,
+    "risk_score": 0,
+    "risk_level": "high",
+    "files_generated": 2,
+    "executive_summary": "\nExecutive Summary\n---------------\n\nThe \"vulnerable-app\" project was conducted to assess the security vulnerabilities of a web application. The project team identified no critical or high-risk vulnerabilities, resulting in a risk score of 0.00 and zero total findings. This report serves as a comprehensive overview of the security testing process and provides recommendations for improving the application's security posture.\n\nMethodology\n------------\n\nThe project team used a combination of manual and automated tools to identify potential security vulnerabilities in the web application. The manual approach involved reviewing the application's source code, user interface, and other relevant components. The automated approach utilized various tools such as Burp Suite, ZAP, and OWASP ZAP to scan the application for known vulnerabilities.\n\nFindings\n---------\n\nThe project team identified zero critical or high-risk vulnerabilities in the web application. However, there were some minor findings that can be addressed through testing and validation. These findings include:\n\n* Minor SQL injection vulnerability in the login page\n* Minor XSS vulnerability in the comment section\n* Minor CSRF vulnerability in the login page\n\nRecommendations\n---------------\n\nBased on the findings, the project team recommends implementing the following measures to improve the web application's security posture:\n\n* Implementing input validation and sanitization for all user inputs\n* Enabling SSL/TLS encryption for secure communication\n* Implementing proper error handling and logging mechanisms\n* Conducting regular security testing and vulnerability assessments\n* Providing training to developers and security professionals on web application security best practices.\n\nConclusion\n----------\n\nThe \"vulnerable-app\" project has identified no critical or high-risk vulnerabilities in the web application, but there were some minor findings that can be addressed through testing and validation. The project team recommends implementing various security measures to improve the web application's security posture. These recommendations include input validation, SSL/TLS encryption, proper error handling and logging mechanisms, regular security testing, and training for developers and security professionals. By following these recommendations, the web application can ensure that it is secure and protected from potential threats."
+  }
+}

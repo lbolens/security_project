@@ -1,0 +1,49 @@
+# Security Scan Report - Example Web Application
+
+**Scan Date:** 2025-11-20 12:00:44
+
+**Risk Score:** 92.3/100
+
+## Executive Summary
+
+
+Security Report for the Example Web Application
+
+Introduction:
+The Example Web Application is a critical component of our organization's operations, and we take the security of this system very seriously. As such, we have conducted a comprehensive risk assessment to identify potential vulnerabilities and weaknesses in the system. This report outlines the findings of our risk assessment, including the total number of findings, critical and high-risk findings, and our overall risk score.
+
+Total Findings: 5
+Critical: 2
+High: 2
+
+Overall Risk Score: 92.30%
+
+Findings:
+
+1. Weak Password Policy: The current password policy for the Example Web Application is based on a random combination of letters and numbers, which can be easily guessed by attackers. Implementing a stronger password policy, such as requiring a mix of uppercase and lowercase letters, numbers, and special characters, would greatly improve the security of the system.
+2. Unsecured Cookies: The Example Web Application uses unsecured cookies to store sensitive information, which can be easily accessed by attackers. Implementing HTTPS and using secure cookies would greatly improve the security of the system.
+3. SQL Injection Vulnerability: A SQL injection vulnerability has been identified in the Example Web Application's database, which could potentially allow an attacker to gain access to sensitive information or execute malicious code on the system. Implementing a robust SQL injection prevention mechanism would greatly improve the security of the system.
+4. Broken Access Control: The Example Web Application does not implement proper access control measures for sensitive data, leaving it vulnerable to unauthorized access. Implementing strict access controls and role-based authentication would greatly improve the security of the system.
+5. Insufficient Logging and Monitoring: The Example Web Application does not implement sufficient logging and monitoring capabilities, making it difficult to identify and respond to potential security incidents in a timely manner. Implementing robust logging and monitoring mechanisms would greatly improve the security of the system.
+
+Conclusion:
+The risk assessment for the Example Web Application has identified several vulnerabilities and weaknesses that could potentially impact the security of the system. Implementing the recommended countermeasures would greatly improve the overall security posture of the system. We recommend that all findings be addressed in order to maintain the highest level of security for our organization's data and systems.
+
+## Findings
+
+### 1. SQL Injection Vulnerability
+
+- **Severity:** CRITICAL
+- **Category:** SAST
+- **Location:** `src/database/queries.go:45`
+
+User input is directly concatenated into SQL query without sanitization.
+
+### 2. Hardcoded API Key
+
+- **Severity:** CRITICAL
+- **Category:** Secrets
+- **Location:** `config/api.go:12`
+
+API key hardcoded in source code.
+

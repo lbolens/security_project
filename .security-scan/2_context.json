@@ -1,0 +1,9 @@
+{
+  "type": "backend",
+  "domain": "general",
+  "criticality": "medium",
+  "security_concerns": [
+    "dependency management",
+    "testing"
+  ]
+}
