@@ -144,7 +144,7 @@ sha256.Sum256(data)
 **Fix**: Use environment variables or secret management:
 ` + "```" + `go
 // Bad
-apiKey := "sk_live_abc123..."
+apiKey := os.Getenv("API_KEY")
 
 // Good
 apiKey := os.Getenv("API_KEY")
