@@ -23,10 +23,16 @@ func (f *PDFFormatter) Format(data types.ReportData) ([]byte, error) {
 	}
 
 	// 2. Save HTML temporarily
-	tmpHTML := "/tmp/report.html"
-	if err := os.WriteFile(tmpHTML, htmlContent, 0644); err != nil {
+	tmpFile, err := os.CreateTemp("", "report-*.html")
+	if err != nil {
 		return nil, err
 	}
+	tmpHTML := tmpFile.Name()
+	if err := tmpFile.WriteString(string(htmlContent)); err != nil {
+		tmpFile.Close()
+		return nil, err
+	}
+	tmpFile.Close()
 	defer os.Remove(tmpHTML)
 
 	// 3. Convert HTML -> PDF with wkhtmltopdf
