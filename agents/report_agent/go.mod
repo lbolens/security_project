@@ -1,6 +1,6 @@
 module report_agent
 
-go 1.24.4
+go 1.25.9
 
 require security_project v0.0.0
 

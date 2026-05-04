@@ -22,7 +22,7 @@ func main() {
 	http.HandleFunc("/search", searchHandler)
 
 	log.Println("Server starting on :8080")
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServeTLS(":8080", "cert.pem", "key.pem", nil)
 }
 
 // SQL Injection vulnerability - string concatenation
@@ -30,7 +30,8 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("id")
 
 	// VULNERABLE: SQL Injection
-	query := "SELECT * FROM users WHERE id = " + userID
+	query := "SELECT * FROM users WHERE id = ?"
+	rows, err := db.QueryRow(query, userID).Rows()
 	rows, err := db.Query(query)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -46,7 +47,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	searchTerm := r.URL.Query().Get("q")
 
 	// VULNERABLE: SQL Injection
-	query := fmt.Sprintf("SELECT * FROM products WHERE name LIKE '%%%s%%'", searchTerm)
+	query := "SELECT * FROM products WHERE name LIKE ?"
 	rows, err := db.Query(query)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
