@@ -7,7 +7,7 @@
   "StartColumn": 20,
   "EndColumn": 62,
   "Match": "sk_live_51H7K8KLkjsdlfkjsd9f8sd7f98sd7f98sd",
-  "Secret": "sk_live_51H7K8KLkjsdlfkjsd9f8sd7f98sd7f98sd",
+  "Secret": "${STRIPE_API_KEY}",
   "File": ".env",
   "SymlinkFile": "",
   "Commit": "",

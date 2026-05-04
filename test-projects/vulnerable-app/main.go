@@ -30,8 +30,9 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("id")
 
 	// VULNERABLE: SQL Injection
-	query := "SELECT * FROM users WHERE id = " + userID
-	rows, err := db.Query(query)
+	query := "SELECT * FROM users WHERE id = ?"
+	rows, err := db.QueryContext(r.Context(), query, userID)
+	_ = rows
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -46,7 +47,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	searchTerm := r.URL.Query().Get("q")
 
 	// VULNERABLE: SQL Injection
-	query := fmt.Sprintf("SELECT * FROM products WHERE name LIKE '%%%s%%'", searchTerm)
+	query := "SELECT * FROM products WHERE name LIKE ?"
 	rows, err := db.Query(query)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
