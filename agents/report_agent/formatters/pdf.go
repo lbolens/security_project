@@ -23,7 +23,11 @@ func (f *PDFFormatter) Format(data types.ReportData) ([]byte, error) {
 	}
 
 	// 2. Save HTML temporarily
-	tmpHTML := "/tmp/report.html"
+	tmpHTMLFile, err := os.CreateTemp("", "report-*.html")
+	if err != nil {
+		return nil, err
+	}
+	tmpHTML := tmpHTMLFile.Name()
 	if err := os.WriteFile(tmpHTML, htmlContent, 0644); err != nil {
 		return nil, err
 	}
