@@ -201,7 +201,7 @@ func GenerateSecretsRemediation(finding map[string]interface{}) (Fix, error) {
 	filePath := GetStringValue(finding, "file_path")
 	lineNumber := GetIntValue(finding, "line_number")
 
-	codeBefore := `apiKey := "sk_live_abc123xyz789"`
+	codeBefore := `apiKey := "sk_live_REDACTED"`
 	codeAfter := `apiKey := os.Getenv("API_KEY")`
 
 	description := "Remove hardcoded secret and use environment variable"
